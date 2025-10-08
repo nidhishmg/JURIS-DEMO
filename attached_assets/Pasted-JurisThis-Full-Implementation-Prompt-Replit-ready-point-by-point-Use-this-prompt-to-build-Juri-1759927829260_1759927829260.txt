@@ -1,0 +1,386 @@
+JurisThis — Full Implementation Prompt (Replit-ready, point-by-point)
+
+Use this prompt to build JurisThis: a ChatGPT-style web app for Indian law (lawyers, students, firms). It contains everything we discussed: UI/UX, frontend, backend, data models, AI logic (RAG + LLM), templates, integrations, security, deployment, team & roadmap. Paste into your Replit / GitHub Copilot / dev brief and use as a single source-of-truth.
+
+1) High-level summary (one line)
+
+JurisThis — ChatGPT-style web app + case/project workspaces that provides: Case Law Search + Verified Summaries, Judgment Analysis & Simplification, Draft Generator (legal templates), IPC↔BNS mapping, Bare Act explanations, Citation verification and secure, auditable workflows tailored for Indian law.
+
+2) Primary product principles (short)
+
+Chat-first UX (exactly like ChatGPT) with a left sidebar for New Chat, Search, Case Folders, Features and History.
+
+Case Folder (Project) mode: all chats, uploads, drafts in a folder are context-scoped (assistant uses only that folder’s files unless user opts otherwise).
+
+Grounded outputs: every factual/legal claim must be sourceable and verifiable.
+
+Modular, production-grade: clear APIs, RBAC, encryption, observability.
+
+3) Top features (Phase 1 MVP)
+
+Case Law Search + Reliable Summaries (RAG)
+
+Judgment Analysis & Simplification (structured output)
+
+Source Secure / Citation Verifier (multi-source crosscheck)
+
+Bare Act / Statute Explanation
+
+IPC ↔ BNS Conversion (India specific)
+
+Draft Generator (Top 10 drafts; see list below)
+
+Case Folders (project workspaces)
+
+Security, Ethics & Audit (no hallucination mode, logging)
+
+Top 10 drafts for MVP
+
+Bail Application (Regular / Anticipatory / Interim)
+
+Legal Notice (Cheque bounce / breach)
+
+Writ Petition (Habeas Corpus / Mandamus common form)
+
+Consumer Complaint Draft
+
+Civil Suit / Plaint
+
+Public Interest Litigation (PIL) basic form
+
+Criminal Complaint (private complaint)
+
+Employment Contract (basic)
+
+Non-Disclosure Agreement (NDA)
+
+General Court Affidavit
+
+4) UI / UX — ChatGPT faithful with legal additions (exact layout & behaviors)
+Layout (desktop)
+
+Left sidebar (persistent) top → bottom:
+
++ New Chat (starts a general chat)
+
+Search chats... (global quick search)
+
+Case Folders (collapsible): + Create Case Folder then list of folders (name / unread badge / quick actions)
+
+Previous Chats (history)
+
+Features (pinned tools): Draft Generator, Judgment Analysis, IPC↔BNS, Bare Act Explorer, Citation Verifier
+
+Settings, Help, Billing
+
+Top bar: global search (across cases + laws), user/profile menu, notifications
+
+Main pane: Chat area (streaming replies). If inside folder, header shows folder name + “folder mode” badge.
+
+Right panel (collapsible): Sources Used, Attached Documents, Quick Tools (Generate draft / Verify citations), Folder Memory
+
+Bottom input bar:
+
+Mode tabs: General | Case | Drafting | Statute Explanation
+
+Attach button (files), tone selector, send button, prompt templates quick menu
+
+Chat response card structure
+
+Every assistant reply must include:
+
+Short Quick Answer (1–2 lines)
+
+Structured sections (if applicable): Metadata (case/court/date), Facts, Issues, Decision/Reasoning, Statutes, Precedents (with clickable citations), Confidence & Verification status.
+
+Action row: Save to Folder / Generate Draft / Verify Citations / Export / Add note.
+
+Case Folder behavior (important)
+
+Creating Folder = mini-workspace. User uploads docs (FIRs, judgments). Folder memory stores named facts (ClientName, ArrestDate, CaseNo).
+
+While in a folder, assistant RAG retrieval prioritizes folder docs and then global corpora.
+
+Folder privacy: Private (user only) or Firm (shared among org members). Audit trail for each access.
+
+Draft Generator UI flow (detailed)
+
+User selects Draft Generator > chooses a draft type (Top 10 visible + search).
+
+System auto-renders a dynamic form from template requiredInputs[] (placeholders).
+
+User can: (a) lazy fill minimal fields or (b) attach supporting docs to auto-extract facts.
+
+Click Generate Draft → streaming generation → shows draft in rich text editor (TipTap/Quill) with inline placeholders highlighted.
+
+Buttons: Verify citations, Save to Case Folder, Export DOCX/PDF, Submit for Review (approval workflow).
+
+5) Frontend tech & implementation notes
+
+Framework: React (Vite or Next.js for server rendering)
+
+Styling: Tailwind CSS + component library (shadcn/ui or Material UI)
+
+Editor: TipTap (rich text, extension enabled for legal formatting)
+
+State & Data: React Query / SWR for server data; local session cache for streaming responses
+
+Websocket/Streaming: Use WebSocket (or SSE) to stream assistant responses for live typing feel.
+
+File uploads: chunked multipart to S3-compatible storage; show progress.
+
+Accessibility: keyboard shortcuts matching ChatGPT (New Chat Ctrl+N, Search /, Toggle panel).
+
+CI: GitHub Actions (lint, tests, build, deploy).
+
+6) Backend architecture (microservices recommended)
+
+Services & responsibilities:
+
+API Gateway / Auth (Node.js / Express or FastAPI): routes, rate limits, JWT/OAuth, SSO (firm SAML optional).
+
+Chat Orchestrator / Orchestration Layer (Node/Python): handles chat sessions, manages RAG pipeline, builds prompts, collects sources, ensures grounded generation.
+
+Retrieval Service (Elasticsearch + Vector DB): keyword search (ES) + semantic search (vector DB: Pinecone / Weaviate / PGVector). Embedding worker generates/updates embeddings.
+
+LLM Service (hosted or API): calls to OpenAI GPT-4/Claude or self-hosted Llama2/LLama-like models for generation and summarization. Use an orchestration to choose model & cost control.
+
+Citation Verifier (Python microservice): performs multi-source lookups (licensed SCC/Manupatra via partner API or IndianKanoon & court websites), returns verified status & para refs.
+
+Template & Draft Service (Node/Python): loads JSON templates, renders drafts, versioning.
+
+Storage:
+
+Relational DB (Postgres) for users, orgs, folders, metadata.
+
+Vector DB (Pinecone/Weaviate/PGVector) for embeddings.
+
+Document store (S3) for PDFs, DOCX.
+
+Admin & Billing Service: plans, seats, usage.
+
+Audit & Logging: ELK or Datadog + DB logs for every generation/verification action.
+
+7) Data model (essential tables / JSON entities)
+
+Minimal key tables/objects (Postgres):
+
+users {id, org_id, email, name, role, mfa, created_at}
+
+orgs {id, name, plan, license_info}
+
+folders {id, org_id, name, jurisdiction, privacy, members, created_at}
+
+documents {id, folder_id, title, source, uploaded_by, metadata{court,date,bench,citation}, s3_url, chunks_count}
+
+vectors stored in vector DB with metadata doc_id, chunk_index, para_range
+
+chats {id, folder_id|null, title, created_by}
+
+messages {id, chat_id, role, text, attachments, sources[], verification_status}
+
+drafts {id, folder_id, template_id, content_html, content_text, citations[], version, status}
+
+templates {id, category, title, requiredInputs[], template[]}
+
+8) RAG & LLM logic — concrete flow (per query)
+
+User sends query (text or file). Detect mode: search, judgment analysis, drafting, statute.
+
+Query normalization: expand legal synonyms, detect citation/section numbers.
+
+Retriever:
+
+Sparse: Elasticsearch (BM25) for exact matches & filters (court, year).
+
+Dense: embed query (SBERT/OpenAI embeddings) → vector DB nearest neighbors (top N).
+
+Context assembly: select 3–8 best chunks (prioritize folder docs if in folder), attach metadata (doc id, para numbers).
+
+Prompt construction: system prompt (mode-specific) + retrieved chunks + user query. Include strict instructions: “Only assert claims found in the provided chunks; if missing, return ‘Insufficient Source’.”
+
+LLM call: stream response. Attach sources & snippet references in output.
+
+Post-check: Citation Verifier checks every cited case/section — update message verification_status & confidence.
+
+Return: response with structured sections and actionable buttons.
+
+9) Example system prompts (copy-paste ready)
+Draft Generator system prompt
+SYSTEM:
+You are JurisThis Draft Assistant (Indian law). Given: [TEMPLATE] and [USER_INPUTS], produce a legally formatted [DOCUMENT_TYPE] in formal Indian legal English. Maintain structure: TITLE, PARTIES, FACTS, GROUNDS, PRAYER. Do NOT invent case citations. If a statute/section is referenced in inputs, include exact section text and mark for verification. Where information is missing, insert [INSERT: fieldName]. Output draft then JSON metadata: {missing_fields:[], suggested_statutes:[], citations_found:[]}.
+
+Judgment Summarizer system prompt
+SYSTEM:
+You are a legal summarizer specialized in Indian judgments. Using the provided context chunks only, produce: 1) 2-line executive summary; 2) Facts (3–6 bullets); 3) Issues (numbered); 4) Decision (1–2 bullets); 5) Reasoning (concise); 6) RatioDecidendi vs Obiter (tag sentences). Always include Sources with doc_id & paragraph numbers. If info not in context, reply: "Insufficient source material".
+
+Citation Verifier prompt
+SYSTEM:
+You are a citation verification microservice. For each citation string, search licensed DBs (SCC/Manupatra) or fallback public sources (IndianKanoon, High Court sites). Return: {citationString, found:true|false, doc_id, para_from, para_to, excerpt, overruled:true|false, source_url}. If not found, mark found:false.
+
+10) Draft templates — how to store (JSON structure)
+
+Each template file (example bail_application.json) shape:
+
+{
+  "id": "bail_application",
+  "category": "Court Petitions",
+  "title": "Bail Application",
+  "description": "Regular/anticipatory/interim bail form",
+  "requiredInputs": ["CourtName","CaseNumber","PetitionerName","AccusedName","OffenceSections","Facts","Grounds","Sureties","Prayer"],
+  "template": [
+    {"heading":"IN THE [CourtName]","content":""},
+    {"heading":"Case No.","content":"[CaseNumber]"},
+    {"heading":"Applicant","content":"[PetitionerName] / [AccusedName]"},
+    {"heading":"Facts","content":"[Facts]"},
+    {"heading":"Grounds","content":"[Grounds]"},
+    {"heading":"Prayer","content":"[Prayer]"},
+    {"heading":"Verification","content":"I, [PetitionerName], state the facts are true."}
+  ],
+  "uiHints": {
+    "formFields": {
+      "OffenceSections": {"type":"tags","placeholder":"Section numbers (e.g., 420 IPC)"},
+      "Facts": {"type":"textarea","maxChars":3000}
+    }
+  }
+}
+
+11) Citation sources & licensing (legal note)
+
+Prefer licensing SCC/Manupatra for production (pay for API/data feed). Flag to investors that this is necessary for SCC-level verification.
+
+Fallback to IndianKanoon and Court websites for public data. Always show provenance and licensing status in UI.
+
+12) Security, privacy & compliance (must haves)
+
+TLS everywhere, AES-256 at rest, KMS for key management.
+
+RBAC + tenant isolation (org_id in every DB row).
+
+Option to disable learning on private data (no training on user uploads unless opt-in).
+
+Audit trail: who generated what, when, and with what inputs.
+
+PII redaction tool before saving (configurable).
+
+Data retention policy & export for compliance.
+
+13) Observability & monitoring
+
+Log requests, LLM calls, vector queries. Track hallucination flags and citation verification failure rate.
+
+Metrics: query latency, cost per token, patents (LLM usage), drafts generated, conversion (trial→paid).
+
+Alerting for model errors and quota thresholds.
+
+14) Deployment & infra (recommended)
+
+Containers: Docker + Kubernetes (GKE / EKS) for scalable model serving.
+
+Serverless: Use functions (AWS Lambda) for light tasks (ingestion).
+
+Vector DB: Pinecone or Weaviate or PGVector on RDS.
+
+Embeddings: batch worker on GPU/CPU VMs.
+
+LLM API: OpenAI for MVP; later consider self-hosted for cost control (Llama2 / Mistral) using Triton or vLLM.
+
+Storage: AWS S3 / GCP bucket for documents.
+
+CDN: for static assets.
+
+15) Team & roles (minimum for 6-month road map)
+
+Founders: CEO (legal domain + product), CTO (technical lead)
+
+Core hires (immediate):
+
+1 Full-stack Engineer (React + Node/FastAPI)
+
+1 NLP/ML Engineer (embedding pipeline, prompt engineering)
+
+1 Backend Engineer (search & infra)
+
+1 Legal Content Lead (ex-lawyer) to create templates & validate outputs
+
+1 DevOps/Platform Engineer
+
+Advisors: Senior litigation partner, data privacy counsel, ML ethics advisor
+
+Later hires: Sales/BD (pilot law firms), Customer Success, QA.
+
+16) Roadmap & milestones (6 months)
+
+Month 0–1: Core infra, UI skeleton (ChatGPT style), authentication, basic chat.
+
+Month 2: Document ingestion + vector DB + case folder MVP. Implement top 10 draft templates JSON + Draft UI form.
+
+Month 3: RAG search + Case Law Search + basic summarizer.
+
+Month 4: Judgment Analysis pipeline + Citation Verifier integration (IndianKanoon).
+
+Month 5: Draft Generator LLM integration, post-generation validation & download. Pilot with 2 law firms / 10 students.
+
+Month 6: Hardening, billing flows, SCC/Manupatra licensing discussions, seed pitch materials.
+
+17) Example API endpoints (minimal)
+
+POST /api/auth/login
+
+POST /api/folders (create case folder)
+
+POST /api/folders/:id/upload (upload doc)
+
+GET /api/search?q=&court=&year= (sparse + dense combined)
+
+POST /api/analysis/judgment {doc_id|text} → returns structured JSON (timeline, facts, issues, ratio)
+
+POST /api/drafts/generate {template_id, folder_id, inputs} → returns draft_id, content_html
+
+POST /api/verify-citations {citations[]} → verification statuses
+
+GET /api/templates (list templates)
+
+GET /api/usage (admin)
+
+18) Cost & seed ask (short guidance for pitch)
+
+MVP 6 months hiring 5 people + infra + data licenses: estimate ₹1.5–3.0 Crore (ballpark) depending on licensing (SCC/Manupatra) and LLM API spend. Break down to payroll, cloud, data licenses and marketing. (Refine before pitch.)
+
+19) Developer / Copilot usage snippet (for immediate coding)
+
+Use this prompt as a header in your code-repo or paste into Copilot to generate routes / components:
+
+PROJECT: JurisThis — AI Legal Assistant (India)
+TASK: Implement Draft Generator form component in React that:
+- loads template JSON from /api/templates
+- renders dynamic form fields from requiredInputs
+- validates required fields
+- posts to /api/drafts/generate
+- shows streaming draft in editor when returned
+- allows Save to Case Folder and Export
+Follow UI/UX spec: ChatGPT-like layout, bottom input has mode tabs, left sidebar case folders.
+
+20) Quick acceptance tests (what to verify)
+
+Create Case Folder → upload judgment PDF → ingest and index → query “Summarize judgment” → output must include Facts, Issues, Decision, Sources with paragraph refs.
+
+New Chat (general) asking a statute question → returns Bare Act explanation + linked statute.
+
+Draft Generator: fill minimal fields for Bail App → generate professional formatted draft with [INSERT] placeholders only where input blank.
+
+Citation Verifier: for a generated citation, verify found/overruled status.
+
+21) Next immediate actions for devs
+
+Bootstrap repo (frontend + backend) with skeleton Chat UI.
+
+Implement templates JSON storage and Draft Form generator.
+
+Stand up ElasticSearch + vector DB; ingestion pipeline skeleton.
+
+Integrate one LLM provider (OpenAI) for MVP.
+
+Hook IndianKanoon as citation fallback.
+
+Build admin dashboard for logs/usage.
