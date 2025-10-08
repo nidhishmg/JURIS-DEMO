@@ -1,0 +1,80 @@
+{
+  "id": "criminal_complaint",
+  "category": "Criminal Law",
+  "title": "Criminal Complaint",
+  "description": "Private criminal complaint template",
+  "requiredInputs": [
+    "CourtName",
+    "ComplaintNumber",
+    "ComplainantName",
+    "ComplainantAddress",
+    "AccusedName",
+    "AccusedAddress",
+    "DateOfOffence",
+    "PlaceOfOffence",
+    "OffenceSections",
+    "FactsOfCase",
+    "Evidence"
+  ],
+  "template": [
+    {
+      "heading": "IN THE COURT OF [CourtName]",
+      "content": ""
+    },
+    {
+      "heading": "CRIMINAL COMPLAINT NO. [ComplaintNumber] OF [CurrentYear]",
+      "content": "(Under Section 200 of the Code of Criminal Procedure, 1973)"
+    },
+    {
+      "heading": "BETWEEN:",
+      "content": "[ComplainantName]\nS/o [ComplainantFatherName]\nR/o [ComplainantAddress]\n...Complainant\n\nAND\n\n[AccusedName]\nS/o [AccusedFatherName]\nR/o [AccusedAddress]\n...Accused"
+    },
+    {
+      "heading": "COMPLAINT FOR OFFENCES PUNISHABLE UNDER [OffenceSections]",
+      "content": ""
+    },
+    {
+      "heading": "TO,\nTHE HONOURABLE MAGISTRATE",
+      "content": "The complainant above-named most respectfully states on oath as follows:"
+    },
+    {
+      "heading": "FACTS OF THE CASE",
+      "content": "1. That the complainant is a law-abiding citizen and has never been involved in any criminal case.\n\n2. That on [DateOfOffence] at [PlaceOfOffence], the accused committed the following offences:\n\n[FactsOfCase]\n\n3. That by the aforesaid acts, the accused has committed offences punishable under [OffenceSections] of the Indian Penal Code, 1860.\n\n4. That the complainant has sufficient evidence to prove the guilt of the accused."
+    },
+    {
+      "heading": "EVIDENCE",
+      "content": "The complainant relies upon the following evidence:\n\n[Evidence]"
+    },
+    {
+      "heading": "JURISDICTION",
+      "content": "This Hon'ble Court has jurisdiction to try the present complaint as the offence was committed within the local limits of this Court's jurisdiction."
+    },
+    {
+      "heading": "PRAYER",
+      "content": "In the premises stated above, the complainant most humbly prays that this Hon'ble Court may be pleased to:\n\na) Take cognizance of the offences committed by the accused;\n\nb) Issue process against the accused;\n\nc) Try and punish the accused according to law;\n\nd) Pass any other order as this Hon'ble Court may deem fit in the interest of justice."
+    },
+    {
+      "heading": "VERIFICATION",
+      "content": "I, [ComplainantName], the complainant above-named, do hereby verify on oath that the contents of paragraphs 1 to [LastParagraph] of the above complaint are true to my knowledge and belief and nothing material has been concealed therefrom."
+    }
+  ],
+  "uiHints": {
+    "formFields": {
+      "OffenceSections": {
+        "type": "tags",
+        "placeholder": "e.g., 406, 420 IPC",
+        "validation": "required"
+      },
+      "FactsOfCase": {
+        "type": "textarea", 
+        "maxChars": 3000,
+        "placeholder": "Detailed facts showing how the offence was committed..."
+      },
+      "Evidence": {
+        "type": "textarea",
+        "maxChars": 1500,
+        "placeholder": "List of documents, witnesses and other evidence..."
+      }
+    }
+  }
+}

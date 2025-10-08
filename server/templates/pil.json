@@ -1,0 +1,91 @@
+{
+  "id": "pil_petition",
+  "category": "Public Interest",
+  "title": "Public Interest Litigation (PIL)",
+  "description": "PIL petition for public interest matters",
+  "requiredInputs": [
+    "CourtName",
+    "PILNumber", 
+    "PetitionerName",
+    "PetitionerAddress",
+    "PublicIssue",
+    "FactsAndCircumstances",
+    "LegalProvisions",
+    "PublicInterest",
+    "ReliefSought"
+  ],
+  "template": [
+    {
+      "heading": "IN THE [CourtName]",
+      "content": ""
+    },
+    {
+      "heading": "WRIT PETITION (CIVIL) NO. [PILNumber] OF [CurrentYear]",
+      "content": "(PUBLIC INTEREST LITIGATION UNDER ARTICLE 226 OF THE CONSTITUTION OF INDIA)"
+    },
+    {
+      "heading": "IN THE MATTER OF:",
+      "content": "[PetitionerName]\nR/o [PetitionerAddress]\n...Petitioner\n\nVERSUS\n\nUnion of India & Others\n...Respondents"
+    },
+    {
+      "heading": "PUBLIC INTEREST LITIGATION FOR [PublicIssue]",
+      "content": ""
+    },
+    {
+      "heading": "TO,\nTHE HON'BLE CHIEF JUSTICE AND HIS COMPANION JUSTICES",
+      "content": "The humble petition of the Petitioner above-named MOST RESPECTFULLY SHOWETH:"
+    },
+    {
+      "heading": "NATURE OF THE PETITION",
+      "content": "This is a Public Interest Litigation filed in the larger public interest concerning [PublicIssue] affecting a large section of society."
+    },
+    {
+      "heading": "FACTS AND CIRCUMSTANCES",
+      "content": "[FactsAndCircumstances]"
+    },
+    {
+      "heading": "LEGAL PROVISIONS VIOLATED",
+      "content": "The following constitutional and legal provisions are being violated:\n\n[LegalProvisions]"
+    },
+    {
+      "heading": "PUBLIC INTEREST INVOLVED",
+      "content": "The present petition involves larger public interest because:\n\n[PublicInterest]"
+    },
+    {
+      "heading": "LOCUS STANDI",
+      "content": "The petitioner has sufficient interest in the matter and is filing this petition in the larger public interest as recognized by the Hon'ble Supreme Court in various judgments including S.P. Gupta v. Union of India (1981) Supp. SCC 87."
+    },
+    {
+      "heading": "PRAYER",
+      "content": "In the premises aforesaid, the petitioner most humbly prays that this Hon'ble Court may be pleased to:\n\na) [ReliefSought];\n\nb) Issue appropriate directions to the respondents;\n\nc) Pass any other order or direction as this Hon'ble Court may deem fit in the larger public interest."
+    },
+    {
+      "heading": "VERIFICATION",
+      "content": "I, [PetitionerName], the petitioner above-named, do hereby verify that the contents of the above petition are true to my knowledge and belief based on legal advice and nothing material has been concealed therefrom."
+    }
+  ],
+  "uiHints": {
+    "formFields": {
+      "PublicIssue": {
+        "type": "text",
+        "placeholder": "e.g., Environmental Protection, Right to Education",
+        "validation": "required"
+      },
+      "FactsAndCircumstances": {
+        "type": "textarea",
+        "maxChars": 3000,
+        "placeholder": "Detailed facts showing the public issue..."
+      },
+      "LegalProvisions": {
+        "type": "textarea",
+        "maxChars": 1500,
+        "placeholder": "Constitutional articles and legal provisions being violated..."
+      },
+      "PublicInterest": {
+        "type": "textarea",
+        "maxChars": 1000,
+        "placeholder": "How this matter affects public interest..."
+      }
+    }
+  }
+}

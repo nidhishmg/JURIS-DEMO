@@ -1,0 +1,89 @@
+{
+  "id": "nda_agreement",
+  "category": "Contracts", 
+  "title": "Non-Disclosure Agreement (NDA)",
+  "description": "Mutual/Unilateral non-disclosure agreement",
+  "requiredInputs": [
+    "Party1Name",
+    "Party1Address",
+    "Party2Name", 
+    "Party2Address",
+    "NDAType",
+    "Purpose",
+    "Duration",
+    "EffectiveDate"
+  ],
+  "template": [
+    {
+      "heading": "NON-DISCLOSURE AGREEMENT",
+      "content": ""
+    },
+    {
+      "heading": "THIS AGREEMENT is entered into on [EffectiveDate]",
+      "content": ""
+    },
+    {
+      "heading": "BETWEEN:",
+      "content": "[Party1Name]\nHaving its registered office at [Party1Address]\n(Hereinafter referred to as 'Party 1' or 'Disclosing Party')\n\nAND\n\n[Party2Name]\nHaving its registered office at [Party2Address]\n(Hereinafter referred to as 'Party 2' or 'Receiving Party')"
+    },
+    {
+      "heading": "RECITALS",
+      "content": "WHEREAS the parties wish to explore [Purpose] and in connection therewith, it may be necessary for the parties to disclose certain confidential and proprietary information to each other;"
+    },
+    {
+      "heading": "NOW THEREFORE, in consideration of the mutual covenants contained herein, the parties agree as follows:",
+      "content": ""
+    },
+    {
+      "heading": "1. DEFINITION OF CONFIDENTIAL INFORMATION",
+      "content": "For purposes of this Agreement, 'Confidential Information' shall mean any and all non-public, proprietary or confidential information disclosed by either party to the other, whether orally, in writing, or in any other form."
+    },
+    {
+      "heading": "2. OBLIGATIONS OF RECEIVING PARTY",
+      "content": "The Receiving Party agrees to:\na) Hold all Confidential Information in strict confidence;\nb) Not disclose Confidential Information to any third party without prior written consent;\nc) Use Confidential Information solely for the purpose of [Purpose];\nd) Protect Confidential Information with the same degree of care as it protects its own confidential information."
+    },
+    {
+      "heading": "3. EXCEPTIONS",
+      "content": "The obligations set forth in this Agreement shall not apply to information that:\na) Is or becomes publicly available through no breach of this Agreement;\nb) Is already known to the Receiving Party prior to disclosure;\nc) Is independently developed without use of Confidential Information;\nd) Is required to be disclosed by law or court order."
+    },
+    {
+      "heading": "4. RETURN OF INFORMATION",
+      "content": "Upon termination of discussions or upon request, the Receiving Party shall return or destroy all documents and materials containing Confidential Information."
+    },
+    {
+      "heading": "5. DURATION",
+      "content": "This Agreement shall remain in effect for a period of [Duration] years from the date hereof, unless terminated earlier by mutual consent."
+    },
+    {
+      "heading": "6. REMEDIES",
+      "content": "The Receiving Party acknowledges that any breach of this Agreement may cause irreparable harm to the Disclosing Party and agrees that the Disclosing Party shall be entitled to seek injunctive relief."
+    },
+    {
+      "heading": "7. GOVERNING LAW",
+      "content": "This Agreement shall be governed by the laws of India and any disputes shall be subject to the jurisdiction of courts at [JurisdictionPlace]."
+    },
+    {
+      "heading": "IN WITNESS WHEREOF, the parties have executed this Agreement on the date first written above.",
+      "content": "\n[Party1Name]:\n\n\nBy: ________________________\nName:\nTitle:\nDate:\n\n[Party2Name]:\n\n\nBy: ________________________\nName:\nTitle:\nDate:"
+    }
+  ],
+  "uiHints": {
+    "formFields": {
+      "NDAType": {
+        "type": "select",
+        "options": ["Mutual", "Unilateral"],
+        "validation": "required"
+      },
+      "Purpose": {
+        "type": "textarea",
+        "maxChars": 500,
+        "placeholder": "Purpose of information sharing (e.g., potential business collaboration)"
+      },
+      "Duration": {
+        "type": "number",
+        "placeholder": "5",
+        "validation": "required"
+      }
+    }
+  }
+}

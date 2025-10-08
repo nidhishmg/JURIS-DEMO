@@ -1,0 +1,76 @@
+{
+  "id": "consumer_complaint",
+  "category": "Consumer Protection",
+  "title": "Consumer Complaint",
+  "description": "Consumer complaint under Consumer Protection Act",
+  "requiredInputs": [
+    "ForumName",
+    "ComplaintNumber",
+    "ComplainantName",
+    "ComplainantAddress",
+    "OppositePartyName",
+    "OppositePartyAddress",
+    "PurchaseDate",
+    "ProductService",
+    "Amount",
+    "Deficiency",
+    "CompensationSought"
+  ],
+  "template": [
+    {
+      "heading": "BEFORE THE [ForumName]",
+      "content": ""
+    },
+    {
+      "heading": "CONSUMER COMPLAINT NO. [ComplaintNumber] OF [CurrentYear]",
+      "content": "(Under Section 35 of the Consumer Protection Act, 2019)"
+    },
+    {
+      "heading": "BETWEEN:",
+      "content": "[ComplainantName]\nR/o [ComplainantAddress]\n...Complainant\n\nAND\n\n[OppositePartyName]\nR/o [OppositePartyAddress]\n...Opposite Party"
+    },
+    {
+      "heading": "CONSUMER COMPLAINT FOR DEFICIENCY IN SERVICE / DEFECTIVE GOODS",
+      "content": ""
+    },
+    {
+      "heading": "TO,\nTHE HON'BLE PRESIDENT AND MEMBERS OF THE [ForumName]",
+      "content": "The humble complaint of the Complainant above-named MOST RESPECTFULLY SHOWETH:"
+    },
+    {
+      "heading": "FACTS OF THE CASE",
+      "content": "1. That the complainant is a consumer within the meaning of Section 2(7) of the Consumer Protection Act, 2019.\n\n2. That on [PurchaseDate], the complainant purchased [ProductService] from the opposite party for a sum of Rs. [Amount].\n\n3. That the opposite party has committed deficiency in service/provided defective goods in the following manner:\n\n[Deficiency]\n\n4. That despite several requests and reminders, the opposite party has failed to redress the grievance of the complainant.\n\n5. That the complainant has suffered mental agony, harassment and financial loss due to the unfair trade practice and deficiency in service on the part of the opposite party."
+    },
+    {
+      "heading": "PRAYER",
+      "content": "In the circumstances stated above, the complainant most humbly prays that this Hon'ble Forum may be pleased to:\n\na) Direct the opposite party to replace the defective product/provide proper service;\n\nb) Direct the opposite party to pay compensation of Rs. [CompensationSought] for mental agony and harassment;\n\nc) Direct the opposite party to pay the costs of this complaint;\n\nd) Pass any other order as this Hon'ble Forum may deem fit in the interest of justice."
+    },
+    {
+      "heading": "VERIFICATION",
+      "content": "I, [ComplainantName], the complainant above-named, do hereby verify that the contents of the above complaint are true to my knowledge and belief and nothing material has been concealed therefrom."
+    }
+  ],
+  "uiHints": {
+    "formFields": {
+      "ForumName": {
+        "type": "select",
+        "options": ["District Consumer Disputes Redressal Commission", "State Consumer Disputes Redressal Commission", "National Consumer Disputes Redressal Commission"],
+        "validation": "required"
+      },
+      "Deficiency": {
+        "type": "textarea",
+        "maxChars": 2000,
+        "placeholder": "Describe the deficiency in service or defective goods..."
+      },
+      "Amount": {
+        "type": "number",
+        "placeholder": "Purchase amount",
+        "validation": "required"
+      },
+      "CompensationSought": {
+        "type": "number", 
+        "placeholder": "Compensation amount sought"
+      }
+    }
+  }
+}

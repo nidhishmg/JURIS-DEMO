@@ -1,0 +1,79 @@
+{
+  "id": "writ_petition",
+  "category": "Constitutional Remedies",
+  "title": "Writ Petition",
+  "description": "Habeas Corpus, Mandamus, Certiorari writ petition template",
+  "requiredInputs": [
+    "CourtName",
+    "PetitionNumber",
+    "PetitionerName",
+    "PetitionerAddress",
+    "RespondentNames",
+    "WritType",
+    "Facts",
+    "Grounds",
+    "ReliefSought",
+    "UrgencyReason"
+  ],
+  "template": [
+    {
+      "heading": "IN THE [CourtName]",
+      "content": ""
+    },
+    {
+      "heading": "WRIT PETITION NO. [PetitionNumber] OF [CurrentYear]",
+      "content": "(Under Article 226 of the Constitution of India)"
+    },
+    {
+      "heading": "IN THE MATTER OF:",
+      "content": "[PetitionerName]\nR/o [PetitionerAddress]\n...Petitioner\n\nVERSUS\n\n[RespondentNames]\n...Respondents"
+    },
+    {
+      "heading": "WRIT PETITION FOR ISSUANCE OF WRIT OF [WritType]",
+      "content": ""
+    },
+    {
+      "heading": "TO,\nTHE HON'BLE CHIEF JUSTICE AND HIS COMPANION JUSTICES OF THE [CourtName]",
+      "content": "The humble petition of the Petitioner above-named MOST RESPECTFULLY SHOWETH:"
+    },
+    {
+      "heading": "FACTS",
+      "content": "[Facts]"
+    },
+    {
+      "heading": "GROUNDS",
+      "content": "The Petitioner respectfully submits that this Hon'ble Court should issue a writ of [WritType] on the following grounds:\n\n[Grounds]"
+    },
+    {
+      "heading": "PRAYER",
+      "content": "In the premises aforesaid, the Petitioner most respectfully prays that this Hon'ble Court may be pleased to:\n\na) Issue a writ of [WritType] or any other appropriate writ, order or direction [ReliefSought];\n\nb) Pass any other order or direction as this Hon'ble Court may deem fit and proper in the circumstances of the case and in the interest of justice."
+    },
+    {
+      "heading": "URGENCY",
+      "content": "The present petition is being filed on an urgent basis because [UrgencyReason]."
+    },
+    {
+      "heading": "VERIFICATION",
+      "content": "I, [PetitionerName], the Petitioner above-named, do hereby solemnly affirm and state that the contents of the above petition are true to my knowledge and belief and nothing material has been concealed therefrom."
+    }
+  ],
+  "uiHints": {
+    "formFields": {
+      "WritType": {
+        "type": "select",
+        "options": ["HABEAS CORPUS", "MANDAMUS", "CERTIORARI", "PROHIBITION", "QUO WARRANTO"],
+        "validation": "required"
+      },
+      "Facts": {
+        "type": "textarea",
+        "maxChars": 3000,
+        "placeholder": "Detailed facts of the case..."
+      },
+      "Grounds": {
+        "type": "textarea",
+        "maxChars": 2000,
+        "placeholder": "Legal grounds for the writ petition..."
+      }
+    }
+  }
+}

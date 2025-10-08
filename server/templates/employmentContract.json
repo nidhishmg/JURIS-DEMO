@@ -1,0 +1,100 @@
+{
+  "id": "employment_contract",
+  "category": "Contracts",
+  "title": "Employment Contract",
+  "description": "Basic employment agreement template",
+  "requiredInputs": [
+    "CompanyName",
+    "CompanyAddress",
+    "EmployeeName",
+    "EmployeeAddress",
+    "Position",
+    "StartDate",
+    "Salary",
+    "WorkingHours",
+    "Probation",
+    "NoticePeriod"
+  ],
+  "template": [
+    {
+      "heading": "EMPLOYMENT AGREEMENT",
+      "content": ""
+    },
+    {
+      "heading": "BETWEEN:",
+      "content": "[CompanyName]\nHaving its registered office at [CompanyAddress]\n(Hereinafter referred to as 'the Company')\n\nAND\n\n[EmployeeName]\nR/o [EmployeeAddress]\n(Hereinafter referred to as 'the Employee')"
+    },
+    {
+      "heading": "RECITALS",
+      "content": "WHEREAS the Company desires to employ the Employee and the Employee desires to be employed by the Company on the terms and conditions hereinafter set forth;"
+    },
+    {
+      "heading": "NOW THEREFORE, in consideration of the mutual covenants contained herein, the parties agree as follows:",
+      "content": ""
+    },
+    {
+      "heading": "1. EMPLOYMENT",
+      "content": "The Company hereby employs the Employee as [Position] and the Employee hereby accepts such employment subject to the terms and conditions of this Agreement."
+    },
+    {
+      "heading": "2. COMMENCEMENT AND DURATION",
+      "content": "The employment shall commence on [StartDate] and shall continue until terminated in accordance with the provisions of this Agreement."
+    },
+    {
+      "heading": "3. PROBATION PERIOD",
+      "content": "The Employee shall be on probation for a period of [Probation] months from the date of joining. During this period, either party may terminate this Agreement by giving one month's written notice."
+    },
+    {
+      "heading": "4. SALARY AND BENEFITS",
+      "content": "The Company shall pay the Employee a monthly salary of Rs. [Salary] plus such benefits as may be applicable according to Company policy."
+    },
+    {
+      "heading": "5. WORKING HOURS",
+      "content": "The normal working hours shall be [WorkingHours] hours per day, Monday to Friday, or as may be required by the Company from time to time."
+    },
+    {
+      "heading": "6. DUTIES AND RESPONSIBILITIES",
+      "content": "The Employee shall perform such duties as may be assigned by the Company from time to time and shall devote his/her full time and attention to the business of the Company."
+    },
+    {
+      "heading": "7. CONFIDENTIALITY",
+      "content": "The Employee shall not disclose any confidential information of the Company to any third party during or after the termination of employment."
+    },
+    {
+      "heading": "8. TERMINATION",
+      "content": "After the probation period, either party may terminate this Agreement by giving [NoticePeriod] months' written notice or payment in lieu thereof."
+    },
+    {
+      "heading": "9. GOVERNING LAW",
+      "content": "This Agreement shall be governed by the laws of India and any disputes shall be subject to the jurisdiction of courts at [CompanyLocation]."
+    },
+    {
+      "heading": "IN WITNESS WHEREOF, the parties have executed this Agreement on the date first written above.",
+      "content": "\nFOR [CompanyName]:\n\n\nAuthorized Signatory\n\n\nEMPLOYEE:\n\n\n[EmployeeName]"
+    }
+  ],
+  "uiHints": {
+    "formFields": {
+      "Salary": {
+        "type": "number",
+        "placeholder": "Monthly salary amount",
+        "validation": "required"
+      },
+      "WorkingHours": {
+        "type": "number",
+        "placeholder": "8",
+        "validation": "required"
+      },
+      "Probation": {
+        "type": "number",
+        "placeholder": "6",
+        "validation": "required"
+      },
+      "NoticePeriod": {
+        "type": "number",
+        "placeholder": "3",
+        "validation": "required"
+      }
+    }
+  }
+}

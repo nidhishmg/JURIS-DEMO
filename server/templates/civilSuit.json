@@ -1,0 +1,84 @@
+{
+  "id": "civil_suit",
+  "category": "Civil Litigation",
+  "title": "Civil Suit / Plaint", 
+  "description": "General civil suit plaint template",
+  "requiredInputs": [
+    "CourtName",
+    "SuitNumber",
+    "PlaintiffName",
+    "PlaintiffAddress",
+    "DefendantName", 
+    "DefendantAddress",
+    "CauseOfAction",
+    "FactsOfCase",
+    "ClaimAmount",
+    "ReliefSought",
+    "Jurisdiction"
+  ],
+  "template": [
+    {
+      "heading": "IN THE COURT OF [CourtName]",
+      "content": ""
+    },
+    {
+      "heading": "CIVIL SUIT NO. [SuitNumber] OF [CurrentYear]",
+      "content": ""
+    },
+    {
+      "heading": "BETWEEN:",
+      "content": "[PlaintiffName]\nS/o [PlaintiffFatherName]\nR/o [PlaintiffAddress]\n...Plaintiff\n\nAND\n\n[DefendantName]\nS/o [DefendantFatherName]\nR/o [DefendantAddress]\n...Defendant"
+    },
+    {
+      "heading": "PLAINT FOR [CauseOfAction]",
+      "content": ""
+    },
+    {
+      "heading": "TO,\nTHE HONOURABLE COURT",
+      "content": "The plaintiff above-named most respectfully states as follows:"
+    },
+    {
+      "heading": "FACTS OF THE CASE",
+      "content": "[FactsOfCase]"
+    },
+    {
+      "heading": "CAUSE OF ACTION",
+      "content": "The cause of action for the present suit arose on [CauseOfActionDate] when [CauseOfAction]. The cause of action is continuing."
+    },
+    {
+      "heading": "JURISDICTION",
+      "content": "This Hon'ble Court has jurisdiction to try and decide the present suit because [Jurisdiction]."
+    },
+    {
+      "heading": "VALUATION AND COURT FEES",
+      "content": "The plaintiff claims a sum of Rs. [ClaimAmount] and the court fee of Rs. [CourtFee] has been paid as per the provisions of the Court Fees Act."
+    },
+    {
+      "heading": "PRAYER",
+      "content": "In the premises aforesaid, the plaintiff most respectfully prays that this Hon'ble Court may be pleased to:\n\na) [ReliefSought];\n\nb) Award costs of the suit;\n\nc) Pass any other order or direction as this Hon'ble Court may deem fit in the circumstances of the case and in the interest of justice."
+    },
+    {
+      "heading": "VERIFICATION",
+      "content": "I, [PlaintiffName], the plaintiff above-named, do hereby verify that the contents of paragraphs 1 to [LastParagraph] of the above plaint are true to my knowledge and belief and nothing material has been concealed therefrom."
+    }
+  ],
+  "uiHints": {
+    "formFields": {
+      "FactsOfCase": {
+        "type": "textarea",
+        "maxChars": 4000,
+        "placeholder": "Detailed facts giving rise to the civil suit..."
+      },
+      "ReliefSought": {
+        "type": "textarea",
+        "maxChars": 1000,
+        "placeholder": "Specific relief sought from the court..."
+      },
+      "ClaimAmount": {
+        "type": "number",
+        "placeholder": "Claim amount in rupees",
+        "validation": "required"
+      }
+    }
+  }
+}

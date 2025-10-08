@@ -1,0 +1,84 @@
+{
+  "id": "legal_notice",
+  "category": "Notices",
+  "title": "Legal Notice",
+  "description": "Legal notice for breach of contract, cheque bounce, etc.",
+  "requiredInputs": [
+    "ClientName",
+    "ClientAddress", 
+    "NoticeeeName",
+    "NoticeeAddress",
+    "IssueDate",
+    "BriefFacts",
+    "LegalBasis",
+    "Demand",
+    "TimeLimit",
+    "Consequences"
+  ],
+  "template": [
+    {
+      "heading": "LEGAL NOTICE",
+      "content": ""
+    },
+    {
+      "heading": "TO:",
+      "content": "[NoticeeeName]\n[NoticeeAddress]"
+    },
+    {
+      "heading": "UNDER THE INSTRUCTIONS AND ON BEHALF OF:",
+      "content": "[ClientName]\n[ClientAddress]"
+    },
+    {
+      "heading": "NOTICE",
+      "content": "TAKE NOTICE that I am acting as Advocate for [ClientName] (hereinafter referred to as 'my client') in the matter mentioned below:"
+    },
+    {
+      "heading": "FACTS",
+      "content": "[BriefFacts]"
+    },
+    {
+      "heading": "LEGAL BASIS",
+      "content": "[LegalBasis]"
+    },
+    {
+      "heading": "DEMAND",
+      "content": "My client hereby demands that you [Demand] within [TimeLimit] days from the receipt of this notice, failing which my client shall be constrained to initiate appropriate legal proceedings against you for recovery of the said amount along with interest and costs."
+    },
+    {
+      "heading": "CONSEQUENCES",
+      "content": "TAKE FURTHER NOTICE that if you fail to comply with the above demand within the stipulated time, my client will be left with no alternative but to seek appropriate legal remedy available under law, and in such an event, you shall be liable for all costs and consequences thereof.\n\n[Consequences]"
+    },
+    {
+      "heading": "PLACE & DATE",
+      "content": "Place: [Place]\nDate: [IssueDate]"
+    },
+    {
+      "heading": "",
+      "content": "Advocate for [ClientName]"
+    }
+  ],
+  "uiHints": {
+    "formFields": {
+      "BriefFacts": {
+        "type": "textarea",
+        "maxChars": 2000,
+        "placeholder": "Describe the facts that give rise to this notice..."
+      },
+      "LegalBasis": {
+        "type": "textarea",
+        "maxChars": 1000,
+        "placeholder": "Legal provisions and grounds..."
+      },
+      "Demand": {
+        "type": "textarea",
+        "maxChars": 500,
+        "placeholder": "What is being demanded from the noticee..."
+      },
+      "TimeLimit": {
+        "type": "number",
+        "placeholder": "30",
+        "validation": "required"
+      }
+    }
+  }
+}

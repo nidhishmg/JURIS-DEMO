@@ -1,0 +1,86 @@
+{
+  "id": "court_affidavit",
+  "category": "Court Documents",
+  "title": "General Court Affidavit", 
+  "description": "General purpose court affidavit template",
+  "requiredInputs": [
+    "CourtName",
+    "CaseTitle",
+    "CaseNumber",
+    "DeponentName",
+    "DeponentAddress",
+    "DeponentRelation",
+    "Facts",
+    "Purpose",
+    "Place"
+  ],
+  "template": [
+    {
+      "heading": "IN THE [CourtName]",
+      "content": ""
+    },
+    {
+      "heading": "[CaseTitle]",
+      "content": ""
+    },
+    {
+      "heading": "[CaseNumber]",
+      "content": ""
+    },
+    {
+      "heading": "AFFIDAVIT OF [DeponentName]",
+      "content": ""
+    },
+    {
+      "heading": "I, [DeponentName], S/o [DeponentFatherName], R/o [DeponentAddress], do hereby solemnly affirm and state on oath as under:",
+      "content": ""
+    },
+    {
+      "heading": "1.",
+      "content": "That I am [DeponentRelation] in the above-mentioned matter and am fully conversant with the facts and circumstances of the case. I am competent to swear this affidavit."
+    },
+    {
+      "heading": "2.",
+      "content": "That the facts stated herein are true to my knowledge and belief derived from records and no part of it is false and nothing material has been concealed therefrom."
+    },
+    {
+      "heading": "3.",
+      "content": "That [Facts]"
+    },
+    {
+      "heading": "4.", 
+      "content": "That I am filing this affidavit for the purpose of [Purpose]"
+    },
+    {
+      "heading": "5.",
+      "content": "That I have not filed any other affidavit in any other Court or authority in respect of the same cause of action."
+    },
+    {
+      "heading": "VERIFICATION",
+      "content": "I, [DeponentName], the deponent above-named, do hereby verify that the contents of paragraphs 1 to 5 of my above affidavit are correct and true to my knowledge and belief, no part of it is false and nothing material has been concealed therefrom.\n\nVerified at [Place] on this [Date] day of [Month], [Year]."
+    },
+    {
+      "heading": "",
+      "content": "\n\nDEPONENT\n([DeponentName])"
+    }
+  ],
+  "uiHints": {
+    "formFields": {
+      "DeponentRelation": {
+        "type": "text",
+        "placeholder": "e.g., the petitioner, witness, advocate for petitioner",
+        "validation": "required"
+      },
+      "Facts": {
+        "type": "textarea",
+        "maxChars": 2000,
+        "placeholder": "State the relevant facts to be sworn to..."
+      },
+      "Purpose": {
+        "type": "textarea", 
+        "maxChars": 500,
+        "placeholder": "Purpose for which this affidavit is being filed..."
+      }
+    }
+  }
+}
