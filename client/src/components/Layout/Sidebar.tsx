@@ -33,6 +33,7 @@ interface SidebarProps {
   onOpenDraftGenerator: () => void;
   onOpenIPCBNSConverter: () => void;
   onOpenCitationVerifier: () => void;
+  onOpenBareActExplorer: () => void;
 }
 
 export default function Sidebar({ 
@@ -46,7 +47,8 @@ export default function Sidebar({
   onCreateFolder,
   onOpenDraftGenerator,
   onOpenIPCBNSConverter,
-  onOpenCitationVerifier
+  onOpenCitationVerifier,
+  onOpenBareActExplorer
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
@@ -215,6 +217,8 @@ export default function Sidebar({
               variant="ghost"
               size="sm"
               className="w-full justify-start"
+              onClick={onOpenBareActExplorer}
+              data-testid="button-bare-act-explorer"
             >
               <BookOpenIcon className="w-4 h-4 mr-2" />
               Bare Act Explorer

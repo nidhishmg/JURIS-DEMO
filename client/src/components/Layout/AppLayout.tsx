@@ -8,6 +8,7 @@ import ChatArea from '../Chat/ChatArea';
 import DraftGenerator from '../Draft/DraftGenerator';
 import IPCBNSConverter from '../Tools/IPCBNSConverter';
 import CitationVerifier from '../Tools/CitationVerifier';
+import BareActExplorer from '../Tools/BareActExplorer';
 import { Folder, Chat } from '@/types';
 import { api } from '@/lib/api';
 
@@ -22,6 +23,7 @@ export default function AppLayout() {
   const [showDraftGenerator, setShowDraftGenerator] = useState(false);
   const [showIPCBNSConverter, setShowIPCBNSConverter] = useState(false);
   const [showCitationVerifier, setShowCitationVerifier] = useState(false);
+  const [showBareActExplorer, setShowBareActExplorer] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [isLoading1, setIsLoading1] = useState(true);
 
@@ -188,6 +190,7 @@ export default function AppLayout() {
         onOpenDraftGenerator={() => setShowDraftGenerator(true)}
         onOpenIPCBNSConverter={() => setShowIPCBNSConverter(true)}
         onOpenCitationVerifier={() => setShowCitationVerifier(true)}
+        onOpenBareActExplorer={() => setShowBareActExplorer(true)}
       />
 
       {/* Main Content Area */}
@@ -210,6 +213,7 @@ export default function AppLayout() {
           onClose={() => setShowRightPanel(false)}
           onOpenIPCBNSConverter={() => setShowIPCBNSConverter(true)}
           onOpenCitationVerifier={() => setShowCitationVerifier(true)}
+          onOpenBareActExplorer={() => setShowBareActExplorer(true)}
         />
       )}
 
@@ -241,6 +245,14 @@ export default function AppLayout() {
         <CitationVerifier
           open={showCitationVerifier}
           onClose={() => setShowCitationVerifier(false)}
+        />
+      )}
+
+      {/* Bare Act Explorer Modal */}
+      {showBareActExplorer && (
+        <BareActExplorer
+          open={showBareActExplorer}
+          onClose={() => setShowBareActExplorer(false)}
         />
       )}
     </div>

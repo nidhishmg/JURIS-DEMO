@@ -107,7 +107,8 @@ export class RAGService {
       // For MVP, use in-memory similarity search
       const similarities = [];
       
-      for (const [key, stored] of this.vectorStore.entries()) {
+      const storeEntries = Array.from(this.vectorStore.entries());
+      for (const [key, stored] of storeEntries) {
         // If folder is specified, only search within that folder
         if (folderId && stored.metadata.folderId !== folderId) {
           continue;

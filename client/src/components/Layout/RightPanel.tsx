@@ -24,9 +24,10 @@ interface RightPanelProps {
   onClose: () => void;
   onOpenIPCBNSConverter: () => void;
   onOpenCitationVerifier: () => void;
+  onOpenBareActExplorer: () => void;
 }
 
-export default function RightPanel({ activeFolder, onClose, onOpenIPCBNSConverter, onOpenCitationVerifier }: RightPanelProps) {
+export default function RightPanel({ activeFolder, onClose, onOpenIPCBNSConverter, onOpenCitationVerifier, onOpenBareActExplorer }: RightPanelProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -289,6 +290,7 @@ export default function RightPanel({ activeFolder, onClose, onOpenIPCBNSConverte
               variant="outline" 
               size="sm" 
               className="w-full justify-start"
+              onClick={onOpenBareActExplorer}
               data-testid="button-bare-act"
             >
               <BookOpenIcon className="w-4 h-4 mr-2" />
