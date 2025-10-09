@@ -8,7 +8,7 @@ import { chatService } from "./services/chatService";
 import { draftService } from "./services/draftService";
 import { citationService } from "./services/citationService";
 import { ragService } from "./services/ragService";
-import { insertFolderSchema, insertChatSchema, insertMessageSchema, insertDraftSchema } from "@shared/schema";
+import { insertFolderSchema, insertChatSchema, insertMessageSchema, insertDraftSchema, generateDraftSchema } from "@shared/schema";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -132,7 +132,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const validatedData = insertChatSchema.parse(req.body);
-      const chat = await chatService.createChat(userId, validatedData.title, validatedData.folderId, validatedData.mode);
+      const chat = await chatService.createChat(
+        userId, 
+        validatedData.title || undefined, 
+        validatedData.folderId || undefined, 
+        validatedData.mode || undefined
+      );
       res.json(chat);
     } catch (error) {
       console.error("Error creating chat:", error);
@@ -162,8 +167,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         req.params.id,
         validatedData.role,
         validatedData.content,
-        validatedData.sources,
-        validatedData.metadata
+        validatedData.sources ? (Array.isArray(validatedData.sources) ? validatedData.sources : [validatedData.sources]) : undefined,
+        validatedData.metadata || undefined
       );
       res.json(message);
     } catch (error) {
@@ -267,7 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/drafts/generate', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const validatedData = insertDraftSchema.parse(req.body);
+      const validatedData = generateDraftSchema.parse(req.body);
       
       const draft = await draftService.generateDraft({
         templateId: validatedData.templateId,

@@ -216,3 +216,10 @@ export const insertDraftSchema = createInsertSchema(drafts).pick({
   contentText: true,
   inputs: true,
 });
+
+export const generateDraftSchema = z.object({
+  templateId: z.string(),
+  folderId: z.string().optional(),
+  title: z.string(),
+  inputs: z.record(z.any()),
+});

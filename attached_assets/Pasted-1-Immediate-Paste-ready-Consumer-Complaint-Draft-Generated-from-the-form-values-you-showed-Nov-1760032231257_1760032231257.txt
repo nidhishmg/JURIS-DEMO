@@ -1,0 +1,198 @@
+1) Immediate — Paste-ready Consumer Complaint Draft
+
+(Generated from the form values you showed: Nova X10, ₹37,999, refund/replacement + ₹5,000, interest 9% etc.)
+
+IN THE NATIONAL CONSUMER DISPUTES REDRESSAL COMMISSION
+AT BENGALURU
+
+COMPLAINT NO. __________
+
+IN THE MATTER OF:
+Mr. Arjun Sharma
+18, 2nd Cross, Koramangala 6th Block,
+Bengaluru, Karnataka - 560095
+...Complainant
+
+VERSUS
+
+M/s TechWave Retail Pvt. Ltd.
+Shop No. 24, Phoenix Mall,
+Whitefield Road, Bengaluru, Karnataka - 560066
+...Opposite Party
+
+COMPLAINT UNDER SECTION 35 OF THE CONSUMER PROTECTION ACT, 2019
+
+MOST RESPECTFULLY SHOWETH:
+
+1. That the Complainant purchased a Nova X10 smartphone (64GB) bearing IMEI No. 352938104829120 from the Opposite Party on 12 March 2024 for ₹37,999.00 vide Invoice No. INV-2467.
+
+2. That within ten (10) days of purchase, the device began to exhibit persistent touchscreen failure and sudden shutdowns, thereby rendering the product unfit for use. The Complainant took the device to the Opposite Party’s service center on 25 March 2024 and was issued Repair Ticket No. R-9981.
+
+3. That despite repeated follow-ups, the Opposite Party failed to repair the device within a reasonable time and refused a replacement or full refund. On 08 April 2024 the Opposite Party provided only a partial software update which did not rectify the defects.
+
+4. That the Opposite Party’s failure to repair or replace the defective product, and its refusal to refund the purchase price, amounts to sale of defective goods and deficiency in service under the Consumer Protection Act, 2019. The Complainant has suffered loss, inconvenience and mental agony.
+
+5. That the Complainant made several representations to the Opposite Party (via email and WhatsApp) on 28 March 2024 and 02 April 2024 but no satisfactory remedy was offered.
+
+RELIEFS / PRAYER
+
+In view of the facts stated above, the Complainant humbly prays that this Hon’ble Commission may be pleased to order that:
+
+a) The Opposite Party be directed to refund ₹37,999.00 (Rupees Thirty-Seven Thousand Nine Hundred and Ninety-Nine only) to the Complainant OR in the alternative be directed to replace the defective Nova X10 with an equivalent model;
+
+b) The Opposite Party be directed to pay compensation of ₹5,000.00 (Rupees Five Thousand only) to the Complainant towards inconvenience and incidental expenses;
+
+c) The Opposite Party be directed to pay interest @ 9% per annum on the amount of ₹37,999.00 from 12 March 2024 until the date of payment;
+
+d) The Opposite Party be directed to pay the costs of this complaint and such other and further relief as this Hon’ble Commission may deem fit and proper.
+
+Place: Bengaluru
+Date: [Date]
+
+(Signature)
+Mr. Arjun Sharma
+Complainant
+
+
+Use the above as your immediate output (copy into your editor, or into the Draft output area). If you want I can also produce a DOCX or PDF version.
+
+2) Debug & Fix Plan — Why “Failed to generate draft” happens & how to fix it (step-by-step)
+Most likely causes
+
+LLM API error (OpenAI / provider rate limit, invalid API key, quota exhausted).
+
+Backend crashed / server error (500) or timed out while calling model.
+
+Input validation failed on server (required fields missing → server returned generic error).
+
+JSON template rendering error (missing template id or malformed JSON).
+
+CORS/network issue between frontend and backend on Replit.
+
+Frontend incorrectly treats any non-200 as generic "Failed to generate draft" (no error details shown).
+
+Immediate checks (do these now in Replit console / browser devtools)
+
+Open browser devtools (Console & Network) → Reproduce the error → check the POST /api/drafts/generate request. Note status code (401/403/422/429/500).
+
+Check server logs (Replit console) for the request timestamp. Look for stacktrace or error message.
+
+Check LLM provider dashboard (OpenAI/other) for errors/usage/quotas and for any 401/429 rejects.
+
+Check template inputs: Did frontend send requiredInputs array? Any null/undefined? (Validation error often causes 422.)
+
+Quick fixes you can do now
+
+If the model API returned 401/403 → verify API key env var on Replit and restart the server.
+
+If the model API returned 429 → reduce batch size, implement exponential backoff retry, or switch to another model with spare quota.
+
+If server timeout (504/500) → increase backend request timeout (node/express or fetch), or chunk prompts (reduce context length).
+
+If JSON template parse error → validate draft_templates.json with online JSON validator and ensure required fields exist.
+
+If frontend displays only generic message → update frontend to show server error message (see code snippet below).
+
+Required change for better UX (so users get a helpful error)
+
+Make the backend return structured errors like:
+
+{ "ok": false, "code": "MODEL_RATE_LIMIT", "message": "OpenAI rate limit (429). Retry after 30s." }
+
+
+and frontend should show the message (instead of “Failed to generate draft”).
+
+3) Paste-ready Dev/Replit support prompt
+
+Send this to your dev channel or Replit support — it contains all info they need:
+
+Subject: Replit — Draft Generator failing with "Failed to generate draft" — need logs & guidance
+
+Hi team — our JurisThis app (Repl URL: <paste-url>) shows "Failed to generate draft" when clicking Generate Draft in Consumer Complaint. Please help investigate. Steps to reproduce:
+1. Open app and navigate to Draft Generator > Consumer Complaint.
+2. Fill fields (Model Nova X10, Amount 37999, Deficiency text) and click Generate Draft.
+3. Error: red toast "Failed to generate draft".
+
+I observed:
+- Browser Network request: POST /api/drafts/generate (status: __ ) — please check. (Attach HAR if requested)
+- Replit console logs at time: [paste timestamp] show: [paste stacktrace or 'no logs'].
+
+Please check:
+- Are environment variables (LLM_API_KEY / OPENAI_KEY) set and valid?
+- Is outbound network allowed from Replit to the LLM endpoint? (Any blocked routes?)
+- Any server errors (500) in logs? Please paste the stacktrace.
+- Rate-limit/quota issues with the LLM provider?
+- If it's a JSON parsing error, please check `draft_templates.json` for malformed JSON and verify template id 'consumer_complaint' exists.
+
+Temporary ask: if blocked, can you restart the repl and provide server logs for the failed request? Also please enable detailed error messages (for dev only) in the response payload to help fix.
+
+Thanks — [Your Name], JurisThis dev
+
+4) Short code snippets to apply right away
+1) Node/Express — Return structured errors
+app.post('/api/drafts/generate', async (req, res) => {
+  try {
+    const { templateId, inputs } = req.body;
+    // validate required inputs
+    if (!templateId) return res.status(400).json({ ok:false, code:'MISSING_TEMPLATE', message:'templateId required' });
+
+    const draft = await generateDraft(templateId, inputs); // your function calling LLM
+    return res.json({ ok:true, draft });
+  } catch (err) {
+    console.error('Draft generate error', err);
+    // Map known errors
+    if (err.response && err.response.status === 429) {
+      return res.status(429).json({ ok:false, code:'MODEL_RATE_LIMIT', message:'Rate limited by LLM provider, please retry.' });
+    }
+    return res.status(500).json({ ok:false, code:'INTERNAL_ERROR', message: err.message || 'Server error' });
+  }
+});
+
+2) Frontend — Show server error message instead of generic one
+const res = await fetch('/api/drafts/generate', { method:'POST', body: JSON.stringify(payload) });
+const data = await res.json();
+if (!res.ok) {
+  // show friendly message but include server message
+  showToast(`Draft generation failed: ${data.message || 'Unknown error (see dev console)'}`, 'error');
+  console.error('Draft error:', data);
+  return;
+}
+displayDraft(data.draft);
+
+3) Retry/backoff for rate-limits
+
+If server returns 429, do exponential backoff and retry 2 times.
+
+5) Fallback: Generate draft by prompt to ChatGPT (if Replit/LLM down)
+
+If you need the draft NOW and your Replit pipeline is failing, paste this prompt into ChatGPT / OpenAI Playground (or any working LLM) with the inputs:
+
+SYSTEM:
+You are an Indian consumer-complaint draft writer. Use the following facts to produce a formal consumer complaint in proper format (District/National Commission style).
+
+USER:
+Complainant: Mr. Arjun Sharma, 18, 2nd Cross, Koramangala 6th Block, Bengaluru 560095
+Opposite party: M/s TechWave Retail Pvt. Ltd., Shop No.24, Phoenix Mall, Whitefield Road, Bengaluru
+Purchase date: 12 March 2024
+Product: Nova X10 smartphone (64GB), IMEI 352938104829120, Invoice INV-2467
+Amount: ₹37,999
+Defect: touchscreen failure and sudden shutdowns; repair ticket R-9981; Opposite Party failed to repair, refused replacement/refund.
+Relief requested: Refund ₹37,999 or replacement of equivalent model; ₹5,000 for inconvenience; interest @9% p.a. from date of purchase; costs of complaint.
+
+TASK:
+Generate a polished consumer complaint petition ready for filing, with headings, facts, grounds, prayer and verification. Do not invent citations. Use formal legal English and insert [Date] placeholders where required.
+
+
+This will produce the same draft I gave above.
+
+TL;DR — What to do next
+
+Copy the paste-ready draft above into your editor so you can continue.
+
+Run the quick checks (browser Network, Replit logs, LLM API dashboard) to find the root cause.
+
+Apply the tiny code changes to return clearer errors and add retry logic.
+
+Use the support message above if you need Replit help.
+
+As a fallback, generate drafts directly via ChatGPT prompt above until your pipeline is healthy.
