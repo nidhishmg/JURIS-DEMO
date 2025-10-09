@@ -207,9 +207,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         extractedText: file.buffer.toString(), // Mock text extraction
       });
 
-      // Index document for RAG
-      const chunks = await ragService.processDocumentText(file.buffer.toString());
-      await ragService.indexDocument(document.id, chunks);
+      // Index document for RAG (non-blocking - don't fail upload if indexing fails)
+      try {
+        const chunks = await ragService.processDocumentText(file.buffer.toString());
+        await ragService.indexDocument(document.id, chunks);
+        console.log(`Document ${document.id} indexed successfully`);
+      } catch (indexError) {
+        // Log the error but don't fail the upload
+        console.warn(`Failed to index document ${document.id} for RAG:`, indexError);
+        console.warn("Document uploaded successfully but not indexed. Set OPENAI_API_KEY to enable RAG indexing.");
+      }
 
       res.json(document);
     } catch (error) {
