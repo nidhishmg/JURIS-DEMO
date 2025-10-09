@@ -31,6 +31,7 @@ interface SidebarProps {
   onSelectFolder: (folder: Folder) => void;
   onCreateFolder: (folderData: any) => Promise<Folder>;
   onOpenDraftGenerator: () => void;
+  onOpenIPCBNSConverter: () => void;
 }
 
 export default function Sidebar({ 
@@ -42,7 +43,8 @@ export default function Sidebar({
   onSelectChat, 
   onSelectFolder, 
   onCreateFolder,
-  onOpenDraftGenerator 
+  onOpenDraftGenerator,
+  onOpenIPCBNSConverter
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
@@ -200,6 +202,8 @@ export default function Sidebar({
               variant="ghost"
               size="sm"
               className="w-full justify-start"
+              onClick={onOpenIPCBNSConverter}
+              data-testid="button-ipc-bns-converter"
             >
               <RefreshCcwIcon className="w-4 h-4 mr-2" />
               IPC ↔ BNS Converter

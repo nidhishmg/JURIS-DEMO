@@ -22,9 +22,10 @@ import {
 interface RightPanelProps {
   activeFolder: Folder | null;
   onClose: () => void;
+  onOpenIPCBNSConverter: () => void;
 }
 
-export default function RightPanel({ activeFolder, onClose }: RightPanelProps) {
+export default function RightPanel({ activeFolder, onClose, onOpenIPCBNSConverter }: RightPanelProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -275,6 +276,7 @@ export default function RightPanel({ activeFolder, onClose }: RightPanelProps) {
               variant="outline" 
               size="sm" 
               className="w-full justify-start"
+              onClick={onOpenIPCBNSConverter}
               data-testid="button-ipc-bns"
             >
               <RefreshCcwIcon className="w-4 h-4 mr-2" />

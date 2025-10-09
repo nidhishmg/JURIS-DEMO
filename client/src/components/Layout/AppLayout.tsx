@@ -6,6 +6,7 @@ import Sidebar from './Sidebar';
 import RightPanel from './RightPanel';
 import ChatArea from '../Chat/ChatArea';
 import DraftGenerator from '../Draft/DraftGenerator';
+import IPCBNSConverter from '../Tools/IPCBNSConverter';
 import { Folder, Chat } from '@/types';
 import { api } from '@/lib/api';
 
@@ -18,6 +19,7 @@ export default function AppLayout() {
   const [activeFolder, setActiveFolder] = useState<Folder | null>(null);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [showDraftGenerator, setShowDraftGenerator] = useState(false);
+  const [showIPCBNSConverter, setShowIPCBNSConverter] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [isLoading1, setIsLoading1] = useState(true);
 
@@ -182,6 +184,7 @@ export default function AppLayout() {
         onSelectFolder={handleSelectFolder}
         onCreateFolder={handleCreateFolder}
         onOpenDraftGenerator={() => setShowDraftGenerator(true)}
+        onOpenIPCBNSConverter={() => setShowIPCBNSConverter(true)}
       />
 
       {/* Main Content Area */}
@@ -202,6 +205,7 @@ export default function AppLayout() {
         <RightPanel
           activeFolder={activeFolder}
           onClose={() => setShowRightPanel(false)}
+          onOpenIPCBNSConverter={() => setShowIPCBNSConverter(true)}
         />
       )}
 
@@ -217,6 +221,14 @@ export default function AppLayout() {
               description: "Your legal draft has been generated successfully.",
             });
           }}
+        />
+      )}
+
+      {/* IPC BNS Converter Modal */}
+      {showIPCBNSConverter && (
+        <IPCBNSConverter
+          open={showIPCBNSConverter}
+          onClose={() => setShowIPCBNSConverter(false)}
         />
       )}
     </div>
