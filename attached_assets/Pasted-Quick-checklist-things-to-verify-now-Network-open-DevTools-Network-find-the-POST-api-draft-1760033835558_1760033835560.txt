@@ -1,0 +1,198 @@
+Quick checklist — things to verify now
+
+Network — open DevTools → Network → find the POST /api/drafts/generate request and its response body. Does the response include the generated draft content (HTML / text / draft_id)?
+
+Response format — confirm server returns { ok:true, draft: { id, html, text, metadata } } not only a 200 status.
+
+Save step — ensure after generation you call a POST /api/drafts (save) or the generate endpoint itself persists to DB.
+
+List refresh — after save, frontend must refresh the drafts list (or push the new draft into UI state).
+
+Permissions / folder mapping — confirm draft saved with folder_id and created_by.
+
+Error logging — if response had draft but UI didn’t display, check console logs for JSON handling errors.
+
+If you want to debug quickly: copy the POST response JSON and paste into console; if it contains draft, but UI is empty, issue is frontend render/fetch.
+
+Recommended data model (Postgres) — create table
+CREATE TABLE drafts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  folder_id UUID NULL,
+  template_id TEXT,
+  title TEXT,
+  created_by UUID NOT NULL,
+  content_html TEXT,           -- full rich text/html
+  content_text TEXT,           -- plain text version
+  citations JSONB DEFAULT '[]'::jsonb,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  version INT DEFAULT 1,
+  status TEXT DEFAULT 'draft', -- draft | generated | verified | published
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX ON drafts (folder_id);
+
+Backend: API contract (recommended)
+
+Endpoints
+
+POST /api/drafts/generate -> generates draft (calls LLM), returns generated content but also saves draft and returns draft_id.
+
+POST /api/drafts -> create/save draft (useful if generate returns but you want separate save)
+
+GET /api/drafts?folder_id=... -> list drafts
+
+GET /api/drafts/:id -> fetch one draft
+
+PUT /api/drafts/:id -> update (save edits)
+
+POST /api/drafts/:id/export -> generate PDF/DOCX (optional)
+
+Generate endpoint behavior (recommended flow)
+
+Receive template_id, inputs, folder_id, user_id.
+
+Call LLM → receive content_html, content_text, citations.
+
+Persist in DB: insert row with status generated.
+
+Return: 200 {ok:true, draft: { id, title, content_html, metadata } }.
+
+This guarantees the UI can immediately show the saved draft.
+
+Backend: Node.js (Express) example — generate + save
+// generateDraft() is the function that calls the LLM and returns {html, text, citations}
+app.post('/api/drafts/generate', async (req, res) => {
+  try {
+    const { templateId, inputs, folderId } = req.body;
+    const userId = req.user.id; // ensure auth middleware
+    const generated = await generateDraft(templateId, inputs); // { html, text, citations }
+
+    // Save to DB
+    const result = await db.query(
+      `INSERT INTO drafts (folder_id, template_id, title, created_by, content_html, content_text, citations, metadata, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [folderId, templateId, inputs.title || 'Untitled Draft', userId, generated.html, generated.text, JSON.stringify(generated.citations || []), JSON.stringify({ inputs }), 'generated']
+    );
+
+    const draft = result.rows[0];
+    return res.json({ ok:true, draft });
+  } catch (err) {
+    console.error('draft generate error', err);
+    // return structured error so frontend can display helpful message
+    return res.status(500).json({ ok:false, code:'GEN_FAILED', message: err.message });
+  }
+});
+
+Frontend: React (flow) — generate -> save -> show
+
+User clicks Generate Draft.
+
+UI calls POST /api/drafts/generate.
+
+On success, API returns draft object. Frontend:
+
+open Draft Viewer modal and load draft.content_html into the editor (TipTap/Quill).
+
+add the draft to local Drafts list state (so it appears in left sidebar).
+
+show success toast Draft saved to folder: [FolderName].
+
+If generate endpoint only returns content (no save), call POST /api/drafts immediately to persist.
+
+React fetch example
+
+async function onGenerateDraft(payload){
+  setLoading(true);
+  const resp = await fetch('/api/drafts/generate',{
+    method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+  });
+  const data = await resp.json();
+  setLoading(false);
+  if(!resp.ok){ toast.error(data.message || 'Failed to generate'); return; }
+  // data.draft exists
+  setDraftViewer(data.draft);          // open viewer with html
+  mutateDraftList(prev => [data.draft, ...prev]); // update list cache (React Query mutate)
+  toast.success('Draft saved');
+}
+
+Frontend UI additions (so user sees drafts reliably)
+
+Immediate Viewer: After generation, open Draft Viewer modal with the generated content and a Save/Save As / Download button.
+
+Drafts Sidebar: under Case Folder, show “Recent Drafts” with title, date, status badge.
+
+Notifications: success toast should say “Draft saved in Folder X — open draft” with a link to viewer.
+
+Versioning: show version history when editing and saving.
+
+Auto-save: while editing, auto-save draft every N seconds (PUT /api/drafts/:id).
+
+Filters: show drafts by status (generated, verified, published).
+
+UX example: After generate, tiny ephemeral toast + open modal. If user dismisses, they still find draft in Case Folder > Drafts.
+
+Export & Storage (optional)
+
+Save HTML in DB (good for quick preview). For long-term/downloads create a PDF/DOCX in S3.
+
+Example export route (server):
+
+app.post('/api/drafts/:id/export', async (req,res) => {
+  const { format } = req.body; // pdf or docx
+  const draft = await db.query('select * from drafts where id=$1', [req.params.id]);
+  const pdfBuffer = await renderHtmlToPdf(draft.content_html); // e.g. puppeteer
+  const key = `drafts/${draft.id}.pdf`;
+  await s3.putObject({Bucket, Key:key, Body:pdfBuffer});
+  await db.query('update drafts set metadata = metadata || $1 where id=$2', [JSON.stringify({exported:true}), draft.id]);
+  res.json({ ok:true, url: s3Url(key)});
+});
+
+Troubleshooting guide (if draft generated message shows but nothing saved)
+
+Check generate endpoint response — does Network show draft object? If yes → frontend bug.
+
+If response lacks draft check server logs for LLM output and DB insert. Maybe LLM returned but DB insert failed (transaction rollback).
+
+If DB has row but UI not showing check list-fetch (GET /api/drafts?folder_id=...) — update cache after create.
+
+Check folder association — drafts saved without folder_id may not appear under folder.
+
+Auth mismatch — drafts created under different user_id or org_id will not appear in current account.
+
+CORS / cache — ensure fetch uses credentials and cache invalidation after create.
+
+Example: show draft in Drafts list — React snippet
+function DraftList({folderId}){
+  const { data: drafts, mutate } = useQuery(['drafts', folderId], () => fetch(`/api/drafts?folder_id=${folderId}`).then(r=>r.json()));
+  return (
+    <div>
+      {drafts?.map(d => (
+        <div key={d.id} onClick={()=>openDraft(d.id)} className="draft-item">
+          <div>{d.title || 'Untitled'}</div>
+          <div className="meta">{new Date(d.created_at).toLocaleString()} • {d.status}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+Minimal acceptance tests to validate fix
+
+Generate draft from UI → network shows POST /api/drafts/generate → response contains draft.id and content_html. Viewer opens.
+
+Navigate to Case Folder > Drafts → the new draft appears at top.
+
+Click draft → editor loads content_html. Edit → click Save → DB row updated (in updated_at and version++).
+
+Export to PDF works and S3 URL returned.
+
+Suggested quick changes to ship today
+
+Ensure POST /api/drafts/generate both generates AND persists the draft (atomic). That eliminates a two-step race.
+
+Return full draft in the response.
+
+Frontend: on success open viewer modal and mutate local drafts cache.
+
+Add small UX: “Open Draft” link in success toast.
