@@ -158,10 +158,12 @@ export class CitationService {
       .from(citationVerifications)
       .where(eq(citationVerifications.found, true));
     
+    const uniqueSources = new Set(stats.map(v => v.source).filter(Boolean));
+    
     return {
       totalVerified: stats.length,
       averageConfidence: stats.reduce((sum, v) => sum + (v.confidence || 0), 0) / stats.length,
-      sources: [...new Set(stats.map(v => v.source).filter(Boolean))],
+      sources: Array.from(uniqueSources) as string[],
     };
   }
 

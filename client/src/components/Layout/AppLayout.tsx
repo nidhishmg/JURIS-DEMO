@@ -7,6 +7,7 @@ import RightPanel from './RightPanel';
 import ChatArea from '../Chat/ChatArea';
 import DraftGenerator from '../Draft/DraftGenerator';
 import IPCBNSConverter from '../Tools/IPCBNSConverter';
+import CitationVerifier from '../Tools/CitationVerifier';
 import { Folder, Chat } from '@/types';
 import { api } from '@/lib/api';
 
@@ -20,6 +21,7 @@ export default function AppLayout() {
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [showDraftGenerator, setShowDraftGenerator] = useState(false);
   const [showIPCBNSConverter, setShowIPCBNSConverter] = useState(false);
+  const [showCitationVerifier, setShowCitationVerifier] = useState(false);
   const [showRightPanel, setShowRightPanel] = useState(true);
   const [isLoading1, setIsLoading1] = useState(true);
 
@@ -185,6 +187,7 @@ export default function AppLayout() {
         onCreateFolder={handleCreateFolder}
         onOpenDraftGenerator={() => setShowDraftGenerator(true)}
         onOpenIPCBNSConverter={() => setShowIPCBNSConverter(true)}
+        onOpenCitationVerifier={() => setShowCitationVerifier(true)}
       />
 
       {/* Main Content Area */}
@@ -206,6 +209,7 @@ export default function AppLayout() {
           activeFolder={activeFolder}
           onClose={() => setShowRightPanel(false)}
           onOpenIPCBNSConverter={() => setShowIPCBNSConverter(true)}
+          onOpenCitationVerifier={() => setShowCitationVerifier(true)}
         />
       )}
 
@@ -229,6 +233,14 @@ export default function AppLayout() {
         <IPCBNSConverter
           open={showIPCBNSConverter}
           onClose={() => setShowIPCBNSConverter(false)}
+        />
+      )}
+
+      {/* Citation Verifier Modal */}
+      {showCitationVerifier && (
+        <CitationVerifier
+          open={showCitationVerifier}
+          onClose={() => setShowCitationVerifier(false)}
         />
       )}
     </div>

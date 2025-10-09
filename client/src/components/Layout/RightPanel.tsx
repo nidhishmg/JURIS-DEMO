@@ -23,9 +23,10 @@ interface RightPanelProps {
   activeFolder: Folder | null;
   onClose: () => void;
   onOpenIPCBNSConverter: () => void;
+  onOpenCitationVerifier: () => void;
 }
 
-export default function RightPanel({ activeFolder, onClose, onOpenIPCBNSConverter }: RightPanelProps) {
+export default function RightPanel({ activeFolder, onClose, onOpenIPCBNSConverter, onOpenCitationVerifier }: RightPanelProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -266,6 +267,7 @@ export default function RightPanel({ activeFolder, onClose, onOpenIPCBNSConverte
               variant="outline" 
               size="sm" 
               className="w-full justify-start"
+              onClick={onOpenCitationVerifier}
               data-testid="button-verify-citations"
             >
               <CheckCircleIcon className="w-4 h-4 mr-2" />

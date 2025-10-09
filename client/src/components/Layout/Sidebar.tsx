@@ -32,6 +32,7 @@ interface SidebarProps {
   onCreateFolder: (folderData: any) => Promise<Folder>;
   onOpenDraftGenerator: () => void;
   onOpenIPCBNSConverter: () => void;
+  onOpenCitationVerifier: () => void;
 }
 
 export default function Sidebar({ 
@@ -44,7 +45,8 @@ export default function Sidebar({
   onSelectFolder, 
   onCreateFolder,
   onOpenDraftGenerator,
-  onOpenIPCBNSConverter
+  onOpenIPCBNSConverter,
+  onOpenCitationVerifier
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewFolderDialog, setShowNewFolderDialog] = useState(false);
@@ -222,6 +224,8 @@ export default function Sidebar({
               variant="ghost"
               size="sm"
               className="w-full justify-start"
+              onClick={onOpenCitationVerifier}
+              data-testid="button-citation-verifier"
             >
               <CheckCircleIcon className="w-4 h-4 mr-2" />
               Citation Verifier
