@@ -478,7 +478,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             chunkingResult = await chunkingService.chunkPages(extractionResult.pages, judgment.id);
             console.log(`Chunking complete: ${chunkingResult.totalChunks} chunks, ${chunkingResult.statistics.totalParagraphs} paragraphs, avg size ${chunkingResult.statistics.averageChunkSize} chars`);
           } else if (sourceUrl) {
-            // URL/CITATION: Fetch and extract from URL
+            // Check if sourceUrl is a citation (not a URL)
+            const isCitation = sourceType === 'citation' || !sourceUrl.match(/^https?:\/\//i);
+            
+            if (isCitation) {
+              // CITATION: Need to resolve citation to URL first (TODO: implement citation resolver)
+              throw new Error(`Citation resolution not yet implemented. Please provide a direct PDF URL instead of citation: "${sourceUrl}"`);
+            }
+            
+            // URL: Fetch and extract from URL
             console.log(`Fetching judgment from URL: ${sourceUrl}...`);
             extractionResult = await pdfExtractionService.extractFromUrl(sourceUrl);
             

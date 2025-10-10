@@ -39,8 +39,25 @@ class PDFExtractionService {
 
   async extractFromUrl(url: string): Promise<ExtractionResult> {
     try {
+      // Validate URL format
+      let validUrl: URL;
+      try {
+        validUrl = new URL(url);
+      } catch {
+        throw new Error(`Invalid URL format: ${url}`);
+      }
+
       console.log(`Fetching PDF from URL: ${url}`);
-      const response = await fetch(url);
+      
+      // Add browser-like headers to avoid 403 errors
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/pdf,application/octet-stream,*/*',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Referer': validUrl.origin,
+        },
+      });
       
       if (!response.ok) {
         throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
