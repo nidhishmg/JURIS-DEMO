@@ -9,6 +9,8 @@ import {
   drafts,
   embeddings,
   citationVerifications,
+  judgments,
+  analyses,
   type User,
   type UpsertUser,
   type Folder,
@@ -25,6 +27,10 @@ import {
   type Embedding,
   type InsertEmbedding,
   type CitationVerification,
+  type Judgment,
+  type InsertJudgment,
+  type Analysis,
+  type InsertAnalysis,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -67,6 +73,18 @@ export interface IStorage {
   // Embedding operations
   createEmbedding(embedding: InsertEmbedding): Promise<Embedding>;
   getDocumentEmbeddings(documentId: string): Promise<Embedding[]>;
+  
+  // Judgment operations
+  createJudgment(judgment: InsertJudgment): Promise<Judgment>;
+  getJudgment(id: string): Promise<Judgment | undefined>;
+  getUserJudgments(userId: string): Promise<Judgment[]>;
+  updateJudgment(id: string, updates: Partial<InsertJudgment>): Promise<Judgment>;
+  
+  // Analysis operations
+  createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
+  getAnalysis(id: string): Promise<Analysis | undefined>;
+  getJudgmentAnalysis(judgmentId: string): Promise<Analysis | undefined>;
+  updateAnalysis(id: string, updates: Partial<InsertAnalysis>): Promise<Analysis>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -228,6 +246,64 @@ export class DatabaseStorage implements IStorage {
       .from(embeddings)
       .where(eq(embeddings.documentId, documentId))
       .orderBy(embeddings.chunkIndex);
+  }
+
+  // Judgment operations
+  async createJudgment(judgment: InsertJudgment): Promise<Judgment> {
+    const [created] = await db.insert(judgments).values(judgment).returning();
+    return created;
+  }
+
+  async getJudgment(id: string): Promise<Judgment | undefined> {
+    const [judgment] = await db.select().from(judgments).where(eq(judgments.id, id));
+    return judgment;
+  }
+
+  async getUserJudgments(userId: string): Promise<Judgment[]> {
+    return await db
+      .select()
+      .from(judgments)
+      .where(eq(judgments.uploadedBy, userId))
+      .orderBy(desc(judgments.createdAt));
+  }
+
+  async updateJudgment(id: string, updates: Partial<InsertJudgment>): Promise<Judgment> {
+    const [updated] = await db
+      .update(judgments)
+      .set(updates)
+      .where(eq(judgments.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Analysis operations
+  async createAnalysis(analysis: InsertAnalysis): Promise<Analysis> {
+    const [created] = await db.insert(analyses).values(analysis).returning();
+    return created;
+  }
+
+  async getAnalysis(id: string): Promise<Analysis | undefined> {
+    const [analysis] = await db.select().from(analyses).where(eq(analyses.id, id));
+    return analysis;
+  }
+
+  async getJudgmentAnalysis(judgmentId: string): Promise<Analysis | undefined> {
+    const [analysis] = await db
+      .select()
+      .from(analyses)
+      .where(eq(analyses.judgmentId, judgmentId))
+      .orderBy(desc(analyses.createdAt))
+      .limit(1);
+    return analysis;
+  }
+
+  async updateAnalysis(id: string, updates: Partial<InsertAnalysis>): Promise<Analysis> {
+    const [updated] = await db
+      .update(analyses)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(analyses.id, id))
+      .returning();
+    return updated;
   }
 }
 

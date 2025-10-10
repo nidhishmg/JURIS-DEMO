@@ -371,6 +371,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Judgment Analysis routes
+  app.post('/api/analysis/judgment', isAuthenticated, upload.single('file'), async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { sourceType, sourceUrl, folderId } = req.body;
+      const file = req.file;
+
+      // Validate input
+      if (!sourceType || !['upload', 'url', 'citation'].includes(sourceType)) {
+        return res.status(400).json({ message: "Invalid sourceType. Must be 'upload', 'url', or 'citation'" });
+      }
+
+      if (sourceType === 'upload' && !file) {
+        return res.status(400).json({ message: "File is required for upload sourceType" });
+      }
+
+      if ((sourceType === 'url' || sourceType === 'citation') && !sourceUrl) {
+        return res.status(400).json({ message: "sourceUrl is required for url/citation sourceType" });
+      }
+
+      // Verify folder ownership if folderId provided
+      if (folderId) {
+        const folder = await storage.getFolder(folderId);
+        if (!folder) {
+          return res.status(404).json({ message: "Folder not found" });
+        }
+        if (folder.userId !== userId) {
+          return res.status(403).json({ message: "Unauthorized: Cannot add judgment to this folder" });
+        }
+      }
+
+      // Store file if uploaded
+      let s3Path = null;
+      if (file) {
+        const { writeFile, mkdir } = await import('fs/promises');
+        const { join } = await import('path');
+        
+        // Create directory structure
+        const uploadDir = join(process.cwd(), 'uploads', 'judgments', userId);
+        await mkdir(uploadDir, { recursive: true });
+        
+        // Generate unique filename
+        const filename = `${Date.now()}-${file.originalname}`;
+        const filePath = join(uploadDir, filename);
+        s3Path = `uploads/judgments/${userId}/${filename}`;
+        
+        // Write file to disk
+        await writeFile(filePath, file.buffer);
+        console.log(`File persisted: ${filePath} (${file.size} bytes)`);
+      }
+
+      // Create judgment record
+      const judgment = await storage.createJudgment({
+        sourceUrl: sourceUrl || null,
+        s3Path,
+        caseName: null, // Will be extracted during analysis
+        court: null,
+        bench: null,
+        date: null,
+        citation: sourceType === 'citation' ? sourceUrl : null,
+        pages: null,
+        uploadedBy: userId,
+        folderId: folderId || null,
+      });
+
+      // Create analysis record with "processing" status
+      const analysis = await storage.createAnalysis({
+        judgmentId: judgment.id,
+        status: 'processing',
+        result: null,
+        error: null,
+        createdBy: userId,
+      });
+
+      // Return 202 Accepted with analysis_id
+      res.status(202).json({
+        analysis_id: analysis.id,
+        status: 'processing',
+        message: 'Judgment ingestion started. Analysis in progress.',
+      });
+
+      // TODO: Queue background job for OCR, chunking, and analysis
+      // File is now persisted to disk and ready for OCR processing
+      console.log(`Judgment analysis queued: judgment_id=${judgment.id}, analysis_id=${analysis.id}, s3_path=${s3Path}`);
+
+    } catch (error) {
+      console.error("Error ingesting judgment:", error);
+      res.status(500).json({ message: "Failed to ingest judgment" });
+    }
+  });
+
+  app.get('/api/analysis/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const analysis = await storage.getAnalysis(req.params.id);
+      
+      if (!analysis) {
+        return res.status(404).json({ message: "Analysis not found" });
+      }
+
+      // Get associated judgment
+      const judgment = await storage.getJudgment(analysis.judgmentId);
+      
+      // Check access permission
+      if (judgment && judgment.uploadedBy !== userId) {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      res.json({
+        ...analysis,
+        judgment,
+      });
+    } catch (error) {
+      console.error("Error fetching analysis:", error);
+      res.status(500).json({ message: "Failed to fetch analysis" });
+    }
+  });
+
   // Load templates on startup
   await draftService.loadTemplatesFromFiles();
 
