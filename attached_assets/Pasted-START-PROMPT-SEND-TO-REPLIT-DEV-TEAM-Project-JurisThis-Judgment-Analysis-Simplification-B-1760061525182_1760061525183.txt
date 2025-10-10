@@ -1,0 +1,285 @@
+START PROMPT — SEND TO REPLIT / DEV TEAM
+
+Project: JurisThis — Judgment Analysis & Simplification. Build a production-ready feature that ingests Indian court judgments (PDF/text), analyzes them with a Retrieval-Augmented Generation (RAG) pipeline, and returns structured, source-anchored outputs for lawyers and students.
+
+Primary goal: convert long judgments (50–300 pages) into structured legal intelligence (metadata, facts, timeline, issues, arguments, ratio vs obiter, statutes, precedents, pinpoint citations, plain-language summary) with each claim anchored to paragraph/page numbers.
+
+Tech stack requirement: Frontend = React (Next.js optional). Backend = Node.js + Express (or FastAPI if preferred). DB = PostgreSQL for metadata + MongoDB optional; Vector DB = Pinecone or Weaviate or PGVector. Search = Elasticsearch (sparse). LLM = OpenAI GPT-4 initially (or Claude), with plan to fine-tune local Llama2 later. OCR = Tesseract + Layout parser. Storage = S3-compatible (for PDFs). CI/CD = Replit for initial dev; Docker/Kubernetes for production.
+
+Environment & secrets: Ensure environment variables are set in Replit for OPENAI_API_KEY (or provider), DATABASE_URL, VECTOR_DB_KEY, S3_KEY, S3_SECRET. Do not hardcode keys.
+
+Ingestion API: POST /api/analysis/judgment accepts { sourceType: "upload"|"url"|"citation", sourceUrl?, file?, folderId?, userId? }. Return 202 Accepted with { analysis_id, status: "processing" }. Store incoming file in S3 and create DB row with status processing.
+
+Ingestion steps (server side):
+a. If file is PDF, store file, run OCR if PDF not text-native (Tesseract + layout parser).
+b. Normalize text: remove headers/footers, unify encodings, preserve page numbers.
+c. Split into paragraphs; assign para_index and page_no for each chunk.
+d. Save raw text + metadata in judgments table and chunk list in vector DB with metadata tags (doc_id, page_no, para_index, court, date, citation).
+
+Database schema (Postgres) - create judgments and analysis tables:
+
+CREATE TABLE judgments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_url TEXT,
+  s3_path TEXT,
+  case_name TEXT,
+  court TEXT,
+  bench TEXT[],
+  date DATE,
+  citation TEXT,
+  pages INT,
+  uploaded_by UUID,
+  created_at timestamptz DEFAULT now()
+);
+CREATE TABLE analyses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  judgment_id UUID REFERENCES judgments(id),
+  status TEXT, -- processing|done|failed
+  result JSONB,
+  created_by UUID,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+
+
+Chunking & vector indexing:
+a. Chunk size target: 400–800 tokens; preserve paragraph boundaries.
+b. Compute embeddings (OpenAI embeddings endpoint or local SBERT).
+c. Index each chunk in vector DB with metadata: {doc_id, page_no, para_index, text_snippet}.
+
+Retrieval logic:
+a. For any analysis step, retrieve top N (e.g., 30) chunks using vector similarity + BM25 AND filter by court/date when requested.
+b. Return full context including page_no and para_index to LLM.
+
+LLM pipeline (multi-step RAG):
+a. Step 1 — Metadata extraction: prompt LLM to extract case name, bench, dates, case number, parties, citations. Must return exact page & para anchors for each extracted item.
+b. Step 2 — Facts extraction: extract factual background as bullet list; each bullet MUST include sources: [{page, para}].
+c. Step 3 — Timeline extraction: find date events and return chronological list with anchors.
+d. Step 4 — Issues extraction: list legal issues (as questions) from judgment with anchors.
+e. Step 5 — Arguments extraction: separate petitioner vs respondent key arguments with anchors.
+f. Step 6 — Ratio identification: identify sentences which constitute the ratio decidendi; require anchor(s) and a confidence score.
+g. Step 7 — Obiter identification: list obiter dicta with anchors.
+h. Step 8 — Statutes & Sections: list all statutes/sections referenced (IPC/BNS/CPC/Evidence/Constitution) with anchors and normalized keys (e.g., IPC_302).
+i. Step 9 — Precedents extraction & verification: extract all cited cases; call citation verification service (SCC/Manupatra API or IndianKanoon fallback) and return found/ not found/overruled flags.
+j. Step 10 — Plain-language summaries: produce (i) one-line summary (ii) 4–6 bullet executive summary (iii) student-mode explanation in non-legal language.
+k. Step 11 — Final JSON assembly: assemble all outputs into the analyses table result field.
+
+LLM prompt templates — use these exact few-shot prompts for best reproducibility.
+
+Prompt A — Metadata extractor (feed only retrieved chunks):
+
+You are a legal metadata extractor for Indian judgments.
+Input: A set of chunks, each with fields {page_no, para_index, text}.
+Task: Return JSON with keys: case_name, court, bench (array), date (YYYY-MM-DD or null), citation (string or null), case_number (string or null), parties {petitioner, respondent}.
+Rules:
+- Every value must include "anchors": array of {page, para_index}.
+- Do not invent values. If not found return null.
+Output as strict JSON only.
+
+
+Prompt B — Facts extractor:
+
+You are a facts extractor. From the provided chunks produce a JSON list "facts": each fact as {id, text, anchors:[{page,para}], confidence: 0.0-1.0}.
+Rules: Keep each fact to one or two sentences, cite exact anchors, avoid legal conclusions.
+Output JSON only.
+
+
+Prompt C — Timeline extractor:
+
+Identify chronological events (dates) from chunks. Return JSON "timeline": [{date: "YYYY-MM-DD" or textual, event: "short text", anchors: [...] }]
+
+
+Prompt D — Issues extractor:
+
+Extract legal issues phrased as questions (e.g., "Whether X is guilty under Section 302 IPC?"). Return JSON "issues": [{id, text, anchors, confidence}]
+
+
+Prompt E — Arguments extractor:
+
+Separate key arguments of petitioner and respondent. Return JSON "arguments": { petitioner: [{text, anchors}], respondent: [{text, anchors}] }.
+
+
+Prompt F — Ratio vs Obiter classifier & extractor:
+
+From chunks, find sentences that are binding holdings (ratio) vs illustrative remarks (obiter).
+Return JSON with arrays "ratio_decidendi" and "obiter_dicta". Each entry: {text, anchors, confidence}.
+Rules: Use linguistic cues ("it is held", "we are of the opinion", "hence held") but verify context. If uncertain, set confidence<0.85.
+
+
+Prompt G — Statute extractor:
+
+Extract statutory references and normalize to canonical form (e.g., "Section 302 IPC" -> {"statute":"IPC","section":"302"}). Return JSON list with anchors and cite text.
+
+
+Prompt H — Precedents extractor:
+
+Extract all case citations and return list: {citation_string, anchors, parsed:{year, reporter, page} or null}. Then call the citation verification microservice with each citation_string.
+
+
+Citation verification microservice:
+a. Implement endpoint POST /api/citation/verify which accepts [citation_string...] and returns {citation_string, found:boolean, source: "SCC|Manupatra|IndianKanoon|CourtURL", doc_id, overruled: boolean, link}.
+b. Primary sources: SCC/Manupatra licensed APIs. Fallback: IndianKanoon scraping (respect robots.txt) and official court websites.
+c. If citation not found, mark found:false and set confidence: low.
+
+Hallucination guardrails:
+a. All model outputs that reference statutory paragraphs or case citations must be cross-checked against indexed chunks and citation verification.
+b. If model returns a citation anchor that is not present in chunk metadata, mark that output unverified and surface for human review.
+c. Never present an unverified case as “authoritative”.
+
+Anchors & pinpointing:
+a. Each extracted item must include anchors array with objects {page_no, para_index}.
+b. Frontend must be able to click an item and scroll to the exact paragraph in the PDF viewer.
+
+Frontend UI expectations:
+a. Analysis Dashboard layout: left actions, main tabs (Executive Summary, Timeline, Facts, Issues, Arguments, Ratio vs Obiter, Statutes, Precedents, Full Text), right column sources and confidence/verify controls.
+b. Show verification badge near case header: Verified / Partially Verified / Unverified.
+c. Each list item shows confidence score (Low/Medium/High) and a View source link to the paragraph.
+d. Provide "Edit/Annotate" button that lets legal reviewer change classification and save corrections.
+
+PDF viewer integration:
+a. Use a JS PDF viewer (PDF.js or react-pdf) with ability to highlight paragraphs by coordinates.
+b. Map page_no and para_index to scroll position. Show highlighted snippet overlay.
+
+Data model for analysis result (store JSON in analyses.result):
+
+executive_summary: {one_line, bullets[]}
+
+timeline[]
+
+facts[]
+
+issues[]
+
+arguments{petitioner[], respondent[]}
+
+ratio_decidendi[]
+
+obiter_dicta[]
+
+statutes[]
+
+precedents[]
+
+verification{citations_checked:boolean, missing_citations:[], overruled:[]}
+
+Each item must contain anchors and confidence.
+
+API responses: GET /api/analysis/:id must return full analyses.result with raw_text link, s3_path and indexing metadata.
+
+Human-in-the-loop workflow:
+a. Add Mark as Verified button for senior lawyer that sets analysis.status = "verified" and stores verifier_id and timestamp.
+b. Corrections (edits) should be stored as annotations with user and timestamp and used to create a training dataset for model fine-tuning.
+
+Rate-limiting, retries & queue:
+a. Use a job queue (Bull/Redis or RQ) for heavy tasks (OCR, embeddings, LLM calls).
+b. Implement retry/backoff for transient LLM API errors (e.g., 429).
+c. Show progress to user: OCR -> chunking -> indexing -> analysis -> verification.
+
+Logging & observability:
+a. Log all LLM requests/ responses (redacting PII) with ids and durations.
+b. Track metrics: avg analysis time, LLM calls per doc, errors by type, citation verification hit rate.
+c. Implement Sentry or equivalent for error monitoring.
+
+Security & confidentiality:
+a. Encrypt S3 storage at rest and use signed URLs for access.
+b. Ensure only authorized users can access analysis results (per folder permissions).
+c. Offer a toggle to disable using uploaded files for model training.
+
+Export & integrations:
+a. Provide Export buttons: PDF/Word/JSON (analysis).
+b. Provide Insert Citation button to copy formatted citation for Draft Generator.
+c. Provide API for analysis/:id/summary for programmatic access.
+
+Acceptance tests (developer must execute these):
+a. Upload 3 sample judgments (one SC, one HC, one District) -> POST /api/analysis/judgment -> wait -> GET /api/analysis/:id -> assert executive_summary present, facts length>0, ratio_decidendi present for at least SC judgment.
+b. Click a fact anchor -> PDF viewer scrolls to the correct page and highlights the paragraph.
+c. Extracted citations -> verify at least 90% of citations exist in SCC/Manupatra (for licensed detector) or IndianKanoon fallback.
+d. Edit a ratio -> save -> verify annotation appears in analyses.annotations and result updated.
+
+Performance & cost controls:
+a. For long judgments, cap LLM context by retrieving prioritized chunks; use multiple smaller LLM calls rather than one huge context.
+b. Cache embeddings and summaries to avoid re-calling LLM for same doc.
+c. Monitor LLM usage costs and log per-document cost.
+
+Rollout plan & milestones:
+a. Week 0–2: Ingestion + OCR + chunking + vector DB + metadata extraction (no LLM).
+b. Week 3–4: RAG pipeline with LLM for Facts/Issues/Exec summary (basic prompts); UI basic viewer with anchors.
+c. Week 5–7: Ratio/Obiter classifier, citation extraction, verification integration.
+d. Week 8–10: Human review UI, annotation pipeline, export features, pilot with 3 law firms.
+e. After pilot: iterate, improve classifier, add visualizations.
+
+Minimal team required for initial MVP:
+a. 1 Backend engineer (Node + DB + queue)
+b. 1 NLP/ML engineer (embedding, prompts, classifier)
+c. 1 Frontend engineer (React + PDF viewer + UI)
+d. 1 Legal lead (senior lawyer) for QA & annotations
+e. 1 DevOps (part-time) for infra & monitoring
+
+Security/compliance notes: if integrating SCC/Manupatra, secure license approvals, follow their T&Cs; do not store or expose licensed content beyond permitted use.
+
+Deliverables to provide to product owner:
+a. Running Replit dev instance with ingestion -> analysis pipeline working on 3 sample judgments.
+b. Postman collection for APIs.
+c. README with env vars, setup, and test steps.
+d. Demo video (5–7 min) showing upload -> analysis -> anchor -> verification -> export.
+
+Troubleshooting checklist if analysis fails:
+a. Check job queue and worker logs for exceptions.
+b. Inspect LLM provider logs for rejections/429/401.
+c. Validate vector DB connectivity and embeddings logs.
+d. Verify PDF OCR success and chunk creation; if OCR fails, flag low confidence.
+
+Exact LLM prompt templates to include in code base (store as files under /prompts):
+
+metadata_extractor.txt (use Prompt A)
+
+facts_extractor.txt (Prompt B)
+
+timeline_extractor.txt (Prompt C)
+
+issues_extractor.txt (Prompt D)
+
+arguments_extractor.txt (Prompt E)
+
+ratio_extractor.txt (Prompt F)
+
+statutes_extractor.txt (Prompt G)
+
+precedents_extractor.txt (Prompt H)
+Each prompt file must instruct the LLM to return strict JSON and to always include anchors.
+
+Sample test prompt for debugging (developer can paste into Playground):
+
+SYSTEM: You are a strict JSON-only response legal analyzer for Indian judgments.
+USER: [include 8-12 chunks with page_no, para_index, text].
+TASK: Run metadata_extractor prompt and return only JSON with keys described.
+
+
+UX microcopy guidelines:
+a. For confidence < 0.6 show label “Low confidence — please verify”.
+b. For unverified citation show “Citation not found in licensed DB — verify manually”.
+c. For scanned docs show “OCR confidence: X% — highlights may be inaccurate”.
+
+Acceptance criteria for MVP launch:
+a. Analysis returns structured JSON for 80% of pilot documents.
+b. Anchors correctly map to PDF paragraphs for 95% of extracted items.
+c. LLM hallucination rate (fabricated citations) < 2% in pilot sampling.
+d. Pilot lawyers report >40% reduction in initial reading time.
+
+Post-deployment monitoring:
+a. Track errors, LLM costs, usage, and user feedback.
+b. Weekly annotation ingestion to retrain classifier and prompts.
+
+Communication: Please respond in this Replit thread with:
+
+Estimated time to implement MVP (in developer days).
+
+Any missing resources or license blockers (SCC/Manupatra).
+
+Which vector DB you will use and why.
+
+Proposed retry/backoff policy and maximum LLM tokens per call.
+
+If any step is unclear, ask follow-up but treat this prompt as the authoritative spec. Start with ingestion and chunking and deliver a working demo (upload -> analysis -> JSON) before UI polish.
+
+END PROMPT

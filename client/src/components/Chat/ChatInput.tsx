@@ -177,7 +177,7 @@ export default function ChatInput({ onSendMessage, disabled = false, activeFolde
         
         {/* Helper Text */}
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          JurisThis can make mistakes. Verify important legal information with official sources.
+          JURIS can make mistakes. Verify important legal information with official sources.
           {activeFolder && (
             <span className="ml-2 text-accent">
               • Responses will prioritize {activeFolder.name} context

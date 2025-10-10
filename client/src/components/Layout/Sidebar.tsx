@@ -90,7 +90,7 @@ export default function Sidebar({
             <Scale className="w-6 h-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-serif font-bold text-lg text-foreground">JurisThis</h1>
+            <h1 className="font-serif font-bold text-lg text-foreground">JURIS</h1>
             <p className="text-xs text-muted-foreground">AI Legal Assistant</p>
           </div>
         </div>

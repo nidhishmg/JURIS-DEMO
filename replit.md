@@ -1,8 +1,8 @@
-# JurisThis - AI Legal Assistant for Indian Law
+# JURIS - AI Legal Assistant for Indian Law
 
 ## Overview
 
-JurisThis is a ChatGPT-style web application designed specifically for Indian legal professionals, including lawyers, students, and law firms. The platform provides intelligent case law search, judgment analysis, legal drafting, and citation verification capabilities. Built as a full-stack application with a modern React frontend and Express backend, it features case folder workspaces that allow users to organize legal research and drafts in project-specific contexts.
+JURIS is a ChatGPT-style web application designed specifically for Indian legal professionals, including lawyers, students, and law firms. The platform provides intelligent case law search, judgment analysis, legal drafting, and citation verification capabilities. Built as a full-stack application with a modern React frontend and Express backend, it features case folder workspaces that allow users to organize legal research and drafts in project-specific contexts.
 
 The application emphasizes grounded, verifiable legal outputs with source citations, multi-source cross-checking, and structured analysis of Indian legal documents including case laws, statutes, and the IPC↔BNS conversion system.
 

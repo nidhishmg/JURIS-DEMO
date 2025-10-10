@@ -151,7 +151,7 @@ export class ChatService {
   }
 
   private buildSystemPrompt(mode: string, context: any): string {
-    const basePrompt = `You are JurisThis, an AI legal assistant specialized in Indian law. You provide accurate, well-researched responses about Indian legal matters including case law, statutes, legal procedures, and legal drafting.
+    const basePrompt = `You are JURIS, an AI legal assistant specialized in Indian law. You provide accurate, well-researched responses about Indian legal matters including case law, statutes, legal procedures, and legal drafting.
 
 CRITICAL INSTRUCTIONS:
 - Only assert claims found in the provided context chunks

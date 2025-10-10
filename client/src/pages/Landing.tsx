@@ -17,7 +17,7 @@ export default function Landing() {
                 </div>
               </div>
               <h1 className="text-4xl font-serif font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-                <span className="block">JurisThis</span>
+                <span className="block">JURIS</span>
                 <span className="block text-primary">AI Legal Assistant for Indian Law</span>
               </h1>
               <p className="mx-auto mt-6 max-w-2xl text-xl text-muted-foreground">
