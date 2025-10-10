@@ -9,6 +9,7 @@ import { draftService } from "./services/draftService";
 import { citationService } from "./services/citationService";
 import { ragService } from "./services/ragService";
 import { pdfExtractionService } from "./services/pdfExtractionService";
+import { chunkingService } from "./services/chunkingService";
 import { insertFolderSchema, insertChatSchema, insertMessageSchema, insertDraftSchema, generateDraftSchema } from "@shared/schema";
 
 const upload = multer({
@@ -468,7 +469,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             console.log(`PDF extracted: ${extractionResult.totalPages} pages using ${extractionResult.extractionMethod} method`);
             
-            // TODO: Continue with chunking and RAG indexing
+            // Chunk the extracted text with page/paragraph anchors
+            const chunkingResult = await chunkingService.chunkPages(extractionResult.pages, judgment.id);
+            console.log(`Chunking complete: ${chunkingResult.totalChunks} chunks, ${chunkingResult.statistics.totalParagraphs} paragraphs, avg size ${chunkingResult.statistics.averageChunkSize} chars`);
+            
+            // TODO: Store chunks in database for RAG indexing
+            // TODO: Index chunks in vector store
             // TODO: Trigger LLM analysis pipeline
           } catch (error) {
             console.error(`PDF extraction failed for judgment ${judgment.id}:`, error);
