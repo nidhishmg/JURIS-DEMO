@@ -87,14 +87,17 @@ export default function JudgmentAnalysis({ open, onClose, folders }: JudgmentAna
       
       const formData = new FormData();
       formData.append('folderId', folderId);
-      formData.append('inputType', uploadMethod);
+      
+      // Map frontend uploadMethod to backend sourceType
+      const sourceType = uploadMethod === 'file' ? 'upload' : uploadMethod;
+      formData.append('sourceType', sourceType);
       
       if (uploadMethod === 'file' && selectedFile) {
         formData.append('file', selectedFile);
       } else if (uploadMethod === 'url') {
-        formData.append('url', url);
+        formData.append('sourceUrl', url);
       } else if (uploadMethod === 'citation') {
-        formData.append('citation', citation);
+        formData.append('sourceUrl', citation);
       }
 
       const response = await fetch('/api/analysis/judgment', {
