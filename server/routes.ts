@@ -455,12 +455,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'Judgment ingestion started. Analysis in progress.',
       });
 
-      // Process PDF extraction in background (non-blocking)
-      if (s3Path) {
-        (async () => {
-          try {
+      // Process judgment in background (non-blocking)
+      (async () => {
+        try {
+          let extractionResult;
+          let chunkingResult;
+
+          if (s3Path) {
+            // FILE UPLOAD: Extract from uploaded PDF
             console.log(`Starting PDF extraction for judgment ${judgment.id}...`);
-            const extractionResult = await pdfExtractionService.extractFromPath(s3Path);
+            extractionResult = await pdfExtractionService.extractFromPath(s3Path);
             
             // Update judgment with extracted metadata
             await storage.updateJudgment(judgment.id, {
@@ -471,26 +475,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log(`PDF extracted: ${extractionResult.totalPages} pages using ${extractionResult.extractionMethod} method`);
             
             // Chunk the extracted text with page/paragraph anchors
-            const chunkingResult = await chunkingService.chunkPages(extractionResult.pages, judgment.id);
+            chunkingResult = await chunkingService.chunkPages(extractionResult.pages, judgment.id);
             console.log(`Chunking complete: ${chunkingResult.totalChunks} chunks, ${chunkingResult.statistics.totalParagraphs} paragraphs, avg size ${chunkingResult.statistics.averageChunkSize} chars`);
+          } else if (sourceUrl) {
+            // URL/CITATION: Fetch and extract from URL
+            console.log(`Fetching judgment from URL: ${sourceUrl}...`);
+            extractionResult = await pdfExtractionService.extractFromUrl(sourceUrl);
             
-            // Run full LLM analysis pipeline (pass extraction result and chunks to avoid re-processing)
-            await analysisService.runFullAnalysis(judgment.id, analysis.id, extractionResult, chunkingResult.chunks);
-            
-            // TODO: Store chunks in database for RAG indexing (future enhancement)
-            // TODO: Index chunks in vector store (future enhancement)
-          } catch (error) {
-            console.error(`PDF extraction failed for judgment ${judgment.id}:`, error);
-            // Update analysis status to failed
-            await storage.updateAnalysis(analysis.id, {
-              status: 'failed',
-              error: `PDF extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            // Update judgment with extracted metadata
+            await storage.updateJudgment(judgment.id, {
+              caseName: extractionResult.metadata?.title || null,
+              pages: extractionResult.totalPages,
             });
+            
+            console.log(`PDF extracted from URL: ${extractionResult.totalPages} pages using ${extractionResult.extractionMethod} method`);
+            
+            // Chunk the extracted text
+            chunkingResult = await chunkingService.chunkPages(extractionResult.pages, judgment.id);
+            console.log(`Chunking complete: ${chunkingResult.totalChunks} chunks`);
+          } else {
+            throw new Error('No source provided for judgment analysis');
           }
-        })();
-      }
+          
+          // Run full LLM analysis pipeline
+          await analysisService.runFullAnalysis(judgment.id, analysis.id, extractionResult, chunkingResult.chunks);
+          
+          // TODO: Store chunks in database for RAG indexing (future enhancement)
+          // TODO: Index chunks in vector store (future enhancement)
+        } catch (error) {
+          console.error(`Judgment analysis failed for ${judgment.id}:`, error);
+          // Update analysis status to failed
+          await storage.updateAnalysis(analysis.id, {
+            status: 'failed',
+            error: `Analysis failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          });
+        }
+      })();
 
-      console.log(`Judgment analysis queued: judgment_id=${judgment.id}, analysis_id=${analysis.id}, s3_path=${s3Path}`);
+      console.log(`Judgment analysis queued: judgment_id=${judgment.id}, analysis_id=${analysis.id}, source=${s3Path || sourceUrl}`);
 
     } catch (error) {
       console.error("Error ingesting judgment:", error);

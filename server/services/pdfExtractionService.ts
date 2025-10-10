@@ -37,6 +37,26 @@ class PDFExtractionService {
     }
   }
 
+  async extractFromUrl(url: string): Promise<ExtractionResult> {
+    try {
+      console.log(`Fetching PDF from URL: ${url}`);
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF: ${response.status} ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      console.log(`PDF fetched successfully (${buffer.length} bytes), starting extraction...`);
+      return await this.extractFromBuffer(buffer);
+    } catch (error) {
+      console.error('URL PDF extraction error:', error);
+      throw new Error(`Failed to extract PDF from URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
   async extractFromBuffer(buffer: Buffer): Promise<ExtractionResult> {
     // Try digital extraction first
     const digitalResult = await this.extractDigitalText(buffer);

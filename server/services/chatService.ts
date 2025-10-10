@@ -1,13 +1,8 @@
-import OpenAI from "openai";
+import { openai } from "../openai";
 import { db } from "../db";
 import { messages, chats, folders, documents } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import { ragService } from "./ragService";
-
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" 
-});
 
 interface ChatContext {
   userId: string;
@@ -93,7 +88,7 @@ export class ChatService {
 
     try {
       const stream = await openai.chat.completions.create({
-        model: "gpt-5",
+        model: "openai/gpt-4o",
         messages: conversationMessages as any,
         stream: true,
         max_completion_tokens: 8192,

@@ -1,12 +1,7 @@
-import OpenAI from "openai";
+import { openai } from "../openai";
 import { db } from "../db";
 import { embeddings, documents, folders } from "@shared/schema";
 import { eq, sql } from "drizzle-orm";
-
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key" 
-});
 
 interface RetrievedContext {
   sources: Array<{
@@ -30,7 +25,7 @@ export class RAGService {
   async generateEmbedding(text: string): Promise<number[]> {
     try {
       const response = await openai.embeddings.create({
-        model: "text-embedding-3-large",
+        model: "openai/text-embedding-3-large",
         input: text,
       });
       

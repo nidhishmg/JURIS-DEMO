@@ -22,7 +22,7 @@ export interface CompleteAnalysisResult {
 
 class AnalysisService {
   private readonly MAX_CHUNKS_PER_STEP = 20; // Limit chunks to avoid token overflow
-  private readonly MODEL = 'gpt-4o-mini'; // Use GPT-4 Omni Mini for cost efficiency
+  private readonly MODEL = 'openai/gpt-4o-mini'; // Use GPT-4 Omni Mini for cost efficiency
 
   async analyzeJudgment(
     judgmentId: string,
