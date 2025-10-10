@@ -31,6 +31,7 @@ interface SidebarProps {
   onSelectFolder: (folder: Folder) => void;
   onCreateFolder: (folderData: any) => Promise<Folder>;
   onOpenDraftGenerator: () => void;
+  onOpenJudgmentAnalysis: () => void;
   onOpenIPCBNSConverter: () => void;
   onOpenCitationVerifier: () => void;
   onOpenBareActExplorer: () => void;
@@ -46,6 +47,7 @@ export default function Sidebar({
   onSelectFolder, 
   onCreateFolder,
   onOpenDraftGenerator,
+  onOpenJudgmentAnalysis,
   onOpenIPCBNSConverter,
   onOpenCitationVerifier,
   onOpenBareActExplorer
@@ -197,6 +199,8 @@ export default function Sidebar({
               variant="ghost"
               size="sm"
               className="w-full justify-start"
+              onClick={onOpenJudgmentAnalysis}
+              data-testid="button-judgment-analysis"
             >
               <FileTextIcon className="w-4 h-4 mr-2" />
               Judgment Analysis

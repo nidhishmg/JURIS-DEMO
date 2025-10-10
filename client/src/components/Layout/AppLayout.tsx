@@ -9,6 +9,7 @@ import DraftGenerator from '../Draft/DraftGenerator';
 import IPCBNSConverter from '../Tools/IPCBNSConverter';
 import CitationVerifier from '../Tools/CitationVerifier';
 import BareActExplorer from '../Tools/BareActExplorer';
+import JudgmentAnalysis from '../Tools/JudgmentAnalysis';
 import { Folder, Chat } from '@/types';
 import { api } from '@/lib/api';
 
@@ -21,6 +22,7 @@ export default function AppLayout() {
   const [activeFolder, setActiveFolder] = useState<Folder | null>(null);
   const [activeChat, setActiveChat] = useState<Chat | null>(null);
   const [showDraftGenerator, setShowDraftGenerator] = useState(false);
+  const [showJudgmentAnalysis, setShowJudgmentAnalysis] = useState(false);
   const [showIPCBNSConverter, setShowIPCBNSConverter] = useState(false);
   const [showCitationVerifier, setShowCitationVerifier] = useState(false);
   const [showBareActExplorer, setShowBareActExplorer] = useState(false);
@@ -188,6 +190,7 @@ export default function AppLayout() {
         onSelectFolder={handleSelectFolder}
         onCreateFolder={handleCreateFolder}
         onOpenDraftGenerator={() => setShowDraftGenerator(true)}
+        onOpenJudgmentAnalysis={() => setShowJudgmentAnalysis(true)}
         onOpenIPCBNSConverter={() => setShowIPCBNSConverter(true)}
         onOpenCitationVerifier={() => setShowCitationVerifier(true)}
         onOpenBareActExplorer={() => setShowBareActExplorer(true)}
@@ -253,6 +256,15 @@ export default function AppLayout() {
         <BareActExplorer
           open={showBareActExplorer}
           onClose={() => setShowBareActExplorer(false)}
+        />
+      )}
+
+      {/* Judgment Analysis Modal */}
+      {showJudgmentAnalysis && (
+        <JudgmentAnalysis
+          open={showJudgmentAnalysis}
+          onClose={() => setShowJudgmentAnalysis(false)}
+          folders={folders}
         />
       )}
     </div>
