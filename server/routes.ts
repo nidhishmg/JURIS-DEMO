@@ -8,6 +8,7 @@ import { chatService } from "./services/chatService";
 import { draftService } from "./services/draftService";
 import { citationService } from "./services/citationService";
 import { ragService } from "./services/ragService";
+import { pdfExtractionService } from "./services/pdfExtractionService";
 import { insertFolderSchema, insertChatSchema, insertMessageSchema, insertDraftSchema, generateDraftSchema } from "@shared/schema";
 
 const upload = multer({
@@ -452,8 +453,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: 'Judgment ingestion started. Analysis in progress.',
       });
 
-      // TODO: Queue background job for OCR, chunking, and analysis
-      // File is now persisted to disk and ready for OCR processing
+      // Process PDF extraction in background (non-blocking)
+      if (s3Path) {
+        (async () => {
+          try {
+            console.log(`Starting PDF extraction for judgment ${judgment.id}...`);
+            const extractionResult = await pdfExtractionService.extractFromPath(s3Path);
+            
+            // Update judgment with extracted metadata
+            await storage.updateJudgment(judgment.id, {
+              caseName: extractionResult.metadata?.title || null,
+              pages: extractionResult.totalPages,
+            });
+            
+            console.log(`PDF extracted: ${extractionResult.totalPages} pages using ${extractionResult.extractionMethod} method`);
+            
+            // TODO: Continue with chunking and RAG indexing
+            // TODO: Trigger LLM analysis pipeline
+          } catch (error) {
+            console.error(`PDF extraction failed for judgment ${judgment.id}:`, error);
+            // Update analysis status to failed
+            await storage.updateAnalysis(analysis.id, {
+              status: 'failed',
+              error: `PDF extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            });
+          }
+        })();
+      }
+
       console.log(`Judgment analysis queued: judgment_id=${judgment.id}, analysis_id=${analysis.id}, s3_path=${s3Path}`);
 
     } catch (error) {
