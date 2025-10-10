@@ -164,6 +164,36 @@ export const citationVerifications = pgTable("citation_verifications", {
   verifiedAt: timestamp("verified_at").defaultNow(),
 });
 
+// Judgment documents for analysis
+export const judgments = pgTable("judgments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sourceUrl: text("source_url"),
+  s3Path: text("s3_path"),
+  caseName: text("case_name"),
+  court: varchar("court"),
+  bench: text("bench").array(), // Array of judge names
+  date: timestamp("date"),
+  citation: varchar("citation"),
+  pages: integer("pages"),
+  uploadedBy: varchar("uploaded_by").references(() => users.id).notNull(),
+  folderId: varchar("folder_id").references(() => folders.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Judgment analyses with structured results
+export const analyses = pgTable("analyses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  judgmentId: varchar("judgment_id").references(() => judgments.id).notNull(),
+  status: varchar("status").notNull(), // processing, done, failed
+  result: jsonb("result"), // Structured analysis JSON
+  error: text("error"), // Error message if failed
+  createdBy: varchar("created_by").references(() => users.id).notNull(),
+  verifiedBy: varchar("verified_by").references(() => users.id), // For human-in-the-loop verification
+  verifiedAt: timestamp("verified_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Export types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -182,6 +212,10 @@ export type InsertDraft = typeof drafts.$inferInsert;
 export type Embedding = typeof embeddings.$inferSelect;
 export type InsertEmbedding = typeof embeddings.$inferInsert;
 export type CitationVerification = typeof citationVerifications.$inferSelect;
+export type Judgment = typeof judgments.$inferSelect;
+export type InsertJudgment = typeof judgments.$inferInsert;
+export type Analysis = typeof analyses.$inferSelect;
+export type InsertAnalysis = typeof analyses.$inferInsert;
 
 // Validation schemas
 export const insertFolderSchema = createInsertSchema(folders).pick({
@@ -222,4 +256,17 @@ export const generateDraftSchema = z.object({
   folderId: z.string().optional(),
   title: z.string(),
   inputs: z.record(z.any()),
+});
+
+export const insertJudgmentSchema = createInsertSchema(judgments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAnalysisSchema = createInsertSchema(analyses).omit({
+  id: true,
+  verifiedBy: true,
+  verifiedAt: true,
+  createdAt: true,
+  updatedAt: true,
 });
