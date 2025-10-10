@@ -34,7 +34,7 @@ class ChunkingService {
   private readonly MIN_CHUNK_SIZE = 200; // characters
   private readonly OVERLAP_SIZE = 100; // character overlap between chunks
 
-  async chunkPages(pages: PageContent[], judgmentId: number): Promise<ChunkingResult> {
+  async chunkPages(pages: PageContent[], judgmentId: string): Promise<ChunkingResult> {
     const chunks: JudgmentChunk[] = [];
     let globalParagraphCounter = 0;
     let chunkCounter = 0;
@@ -126,7 +126,7 @@ class ChunkingService {
     paragraph: string,
     pageNumber: number,
     paragraphNumber: number,
-    judgmentId: number,
+    judgmentId: string,
     startChunkCounter: number
   ): JudgmentChunk[] {
     const chunks: JudgmentChunk[] = [];
@@ -188,7 +188,7 @@ class ChunkingService {
 
   async chunkDocument(
     extractedText: string,
-    judgmentId: number,
+    judgmentId: string,
     pageNumber: number = 1
   ): Promise<ChunkingResult> {
     // For non-paginated text, treat as single page
