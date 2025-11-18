@@ -1,13 +1,12 @@
 import { storage } from '../storage';
 import fs from 'fs/promises';
 import path from 'path';
-import crypto from 'crypto';
 
 const OUTPUT_DIR = path.join(process.cwd(), 'uploads', 'generated');
 
 export async function prepareAndSaveDocument(requestId: string, userId: string, templateId: string, draftText: string, parsedJson: any, confidence: number) {
   await fs.mkdir(OUTPUT_DIR, { recursive: true });
-  const docId = 'doc-' + crypto.randomUUID();
+  const docId = 'doc-' + (require('crypto').randomUUID());
   const html = renderHtml(draftText);
   const htmlPath = path.join(OUTPUT_DIR, `${docId}.html`);
   await fs.writeFile(htmlPath, html, 'utf-8');
@@ -15,7 +14,7 @@ export async function prepareAndSaveDocument(requestId: string, userId: string, 
   let pdfPath: string | null = null;
   try {
 
-
+    
     // Try to use puppeteer if available
     const puppeteer = await import('puppeteer');
     const browser = await puppeteer.launch();
