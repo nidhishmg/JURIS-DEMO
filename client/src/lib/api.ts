@@ -94,8 +94,13 @@ export const api = {
 
   // Draft API
   async generateDraft(data: { templateId: string; folderId?: string; inputs: any; title: string }) {
-    const response = await apiRequest("POST", "/api/drafts/generate", data);
+    const response = await apiRequest("POST", "/api/drafts/generate-sync", data);
     return response.json();
+  },
+
+  async downloadDraftPdf(draftId: string) {
+    const response = await apiRequest("GET", `/api/drafts/${draftId}/pdf`);
+    return response.blob();
   },
 
   async getUserDrafts() {
@@ -110,6 +115,16 @@ export const api = {
 
   async updateDraft(draftId: string, data: { contentHtml?: string; status?: string; version?: number }) {
     const response = await apiRequest("PUT", `/api/drafts/${draftId}`, data);
+    return response.json();
+  },
+
+  async enhanceDraftWithLLM(draftId: string) {
+    const response = await apiRequest("POST", `/api/drafts/${draftId}/enhance`);
+    return response.json();
+  },
+
+  async validateDraftWithLLM(draftId: string) {
+    const response = await apiRequest("POST", `/api/drafts/${draftId}/validate`);
     return response.json();
   },
 

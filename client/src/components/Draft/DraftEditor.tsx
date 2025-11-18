@@ -21,6 +21,8 @@ import {
   ListIcon,
   LinkIcon,
   FileTextIcon,
+  SparklesIcon,
+  ShieldCheckIcon,
 } from 'lucide-react';
 
 interface DraftEditorProps {
@@ -33,6 +35,9 @@ export default function DraftEditor({ draft, onClose, onSave }: DraftEditorProps
   const [content, setContent] = useState(draft.contentHtml);
   const [isPreview, setIsPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<any>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const { toast } = useToast();
 
@@ -114,6 +119,101 @@ export default function DraftEditor({ draft, onClose, onSave }: DraftEditorProps
     }
   };
 
+  const handleEnhanceWithLLM = async () => {
+    try {
+      setIsEnhancing(true);
+      const enhancedDraft = await api.enhanceDraftWithLLM(draft.id);
+      
+      setContent(enhancedDraft.contentHtml);
+      onSave(enhancedDraft);
+      
+      toast({
+        title: "Draft Enhanced",
+        description: "Your draft has been enhanced using local AI",
+      });
+    } catch (error: any) {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Enhancement Failed",
+        description: error.message || "Failed to enhance draft with AI. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const handleValidateWithLLM = async () => {
+    try {
+      setIsValidating(true);
+      const validation = await api.validateDraftWithLLM(draft.id);
+      
+      setValidationResult(validation);
+      
+      toast({
+        title: "Validation Complete",
+        description: validation.isValid 
+          ? "Your draft looks good!" 
+          : "Some issues were found. Check the validation results.",
+        variant: validation.isValid ? "default" : "destructive",
+      });
+    } catch (error: any) {
+      if (isUnauthorizedError(error)) {
+        toast({
+          title: "Unauthorized",
+          description: "You are logged out. Logging in again...",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          window.location.href = "/api/login";
+        }, 500);
+        return;
+      }
+      toast({
+        title: "Validation Failed",
+        description: error.message || "Failed to validate draft with AI. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      const blob = await api.downloadDraftPdf(draft.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${draft.title}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Download Started",
+        description: "PDF is being downloaded",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Download Failed",
+        description: error.message || "Failed to download PDF",
+        variant: "destructive",
+      });
+    }
+  };
+
   const insertText = (before: string, after: string = '') => {
     const textarea = document.getElementById('draft-editor') as HTMLTextAreaElement;
     if (!textarea) return;
@@ -161,6 +261,34 @@ export default function DraftEditor({ draft, onClose, onSave }: DraftEditorProps
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEnhanceWithLLM}
+              disabled={isEnhancing}
+              data-testid="button-enhance-llm"
+            >
+              {isEnhancing ? (
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-1"></div>
+              ) : (
+                <SparklesIcon className="w-4 h-4 mr-1" />
+              )}
+              {isEnhancing ? 'Enhancing...' : 'Enhance with AI'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleValidateWithLLM}
+              disabled={isValidating}
+              data-testid="button-validate-llm"
+            >
+              {isValidating ? (
+                <div className="w-4 h-4 animate-spin rounded-full border-2 border-primary border-t-transparent mr-1"></div>
+              ) : (
+                <ShieldCheckIcon className="w-4 h-4 mr-1" />
+              )}
+              {isValidating ? 'Validating...' : 'AI Validate'}
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -272,6 +400,46 @@ export default function DraftEditor({ draft, onClose, onSave }: DraftEditorProps
 
       {/* Editor Content */}
       <div className="flex-1 overflow-hidden">
+        {/* Validation Results */}
+        {validationResult && (
+          <div className="p-4 border-b border-border bg-muted/30">
+            <h4 className="font-medium mb-2 flex items-center gap-2">
+              <ShieldCheckIcon className="w-4 h-4" />
+              AI Validation Results
+            </h4>
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
+              {validationResult.suggestions && validationResult.suggestions.length > 0 && (
+                <div>
+                  <h5 className="font-medium text-green-600 mb-1">Suggestions:</h5>
+                  <ul className="space-y-1">
+                    {validationResult.suggestions.map((suggestion: string, i: number) => (
+                      <li key={i} className="text-muted-foreground">• {suggestion}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {validationResult.issues && validationResult.issues.length > 0 && (
+                <div>
+                  <h5 className="font-medium text-amber-600 mb-1">Issues:</h5>
+                  <ul className="space-y-1">
+                    {validationResult.issues.map((issue: string, i: number) => (
+                      <li key={i} className="text-muted-foreground">• {issue}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2"
+              onClick={() => setValidationResult(null)}
+            >
+              Dismiss
+            </Button>
+          </div>
+        )}
+
         {isPreview ? (
           <div className="h-full overflow-y-auto p-8 bg-white">
             <div 
@@ -310,20 +478,21 @@ export default function DraftEditor({ draft, onClose, onSave }: DraftEditorProps
         </div>
         <div className="flex items-center gap-2">
           <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDownloadPdf}
+            data-testid="button-download-pdf"
+          >
+            <DownloadIcon className="w-4 h-4 mr-1" />
+            Download PDF
+          </Button>
+          <Button
             variant="ghost"
             size="sm"
             onClick={() => handleExport('docx')}
             data-testid="button-export-docx"
           >
             Export DOCX
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleExport('pdf')}
-            data-testid="button-export-pdf"
-          >
-            Export PDF
           </Button>
         </div>
       </div>

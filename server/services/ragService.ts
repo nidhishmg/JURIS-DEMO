@@ -1,7 +1,6 @@
 import { openai } from "../openai";
-import { db } from "../db";
-import { embeddings, documents, folders } from "@shared/schema";
-import { eq, sql } from "drizzle-orm";
+import { storage } from "../storage";
+import { isOffline, pseudoEmbedding } from "./offline";
 
 interface RetrievedContext {
   sources: Array<{
@@ -23,6 +22,10 @@ export class RAGService {
   private vectorStore = new Map<string, { embedding: number[], content: string, metadata: any }>();
 
   async generateEmbedding(text: string): Promise<number[]> {
+    if (isOffline()) {
+      // Use deterministic pseudo-embedding in offline mode
+      return pseudoEmbedding(text);
+    }
     try {
       const response = await openai.embeddings.create({
         model: "openai/text-embedding-3-large",
@@ -38,23 +41,15 @@ export class RAGService {
 
   async indexDocument(documentId: string, chunks: string[]) {
     try {
-      const document = await db.select()
-        .from(documents)
-        .where(eq(documents.id, documentId))
-        .limit(1);
-
-      if (!document[0]) {
-        throw new Error("Document not found");
-      }
-
-      const doc = document[0];
+      const doc = await storage.getDocument(documentId);
+      if (!doc) throw new Error("Document not found");
       
       for (let i = 0; i < chunks.length; i++) {
         const chunk = chunks[i];
         const embedding = await this.generateEmbedding(chunk);
         
-        // Store in database
-        await db.insert(embeddings).values({
+        // Store in in-memory storage
+        await storage.createEmbedding({
           documentId,
           chunkIndex: i,
           content: chunk,
@@ -82,12 +77,7 @@ export class RAGService {
       }
 
       // Update document chunks count
-      await db.update(documents)
-        .set({ 
-          chunksCount: chunks.length,
-          updatedAt: new Date()
-        })
-        .where(eq(documents.id, documentId));
+      await storage.updateDocument(documentId, { chunksCount: chunks.length, updatedAt: new Date() } as any);
 
     } catch (error) {
       console.error("Document indexing error:", error);

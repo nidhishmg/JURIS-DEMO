@@ -1,6 +1,4 @@
-import { db } from "../db";
-import { citationVerifications } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { storage } from "../storage";
 
 interface CitationResult {
   citation: string;
@@ -36,11 +34,7 @@ export class CitationService {
 
   private async verifySingleCitation(citation: string): Promise<CitationResult> {
     // Check if we have this citation cached
-    const [cached] = await db.select()
-      .from(citationVerifications)
-      .where(eq(citationVerifications.citation, citation))
-      .limit(1);
-    
+    const cached = await storage.getCitationVerification(citation);
     if (cached) {
       return {
         citation: cached.citation,
@@ -57,7 +51,7 @@ export class CitationService {
     const result = await this.performCitationLookup(citation);
     
     // Cache the result
-    await db.insert(citationVerifications).values({
+    await storage.createCitationVerification({
       citation,
       found: result.found,
       source: result.source,
@@ -154,17 +148,7 @@ export class CitationService {
 
   async getVerificationStats(userId: string) {
     // Get verification statistics for user's citations
-    const stats = await db.select()
-      .from(citationVerifications)
-      .where(eq(citationVerifications.found, true));
-    
-    const uniqueSources = new Set(stats.map(v => v.source).filter(Boolean));
-    
-    return {
-      totalVerified: stats.length,
-      averageConfidence: stats.reduce((sum, v) => sum + (v.confidence || 0), 0) / stats.length,
-      sources: Array.from(uniqueSources) as string[],
-    };
+    return storage.getCitationStats();
   }
 
   convertIPCtoBNS(ipcSection: string): { bnsSection: string; description: string } | null {

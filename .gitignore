@@ -4,3 +4,20 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local data
+uploads/
+temp/
+
+# Vite/TS caches
+.vite/
+*.tsbuildinfo
+
+# Editor/OS
+.vscode/
+Thumbs.db

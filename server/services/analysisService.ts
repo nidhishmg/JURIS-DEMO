@@ -3,6 +3,7 @@ import { storage } from '../storage';
 import { pdfExtractionService, type ExtractionResult } from './pdfExtractionService';
 import { chunkingService, type JudgmentChunk } from './chunkingService';
 import { analysisPrompts, generateAnalysisPrompt, analysisStepOrder } from './analysisPrompts';
+import { isOffline, offlineAnalysisForStep } from './offline';
 
 export interface AnalysisStepResult {
   step: string;
@@ -51,28 +52,45 @@ class AnalysisService {
           stepContext
         );
         
-        // Call LLM with structured output
+        // Offline path: synthesize result locally without network calls
+        if (isOffline()) {
+          const template = analysisPrompts[step];
+          const parsedResult = offlineAnalysisForStep(step, chunksText, stepContext, template?.requiredFields);
+          const anchors = this.extractAnchors(parsedResult);
+          stepResults[step] = {
+            step,
+            result: parsedResult,
+            anchors,
+            model: 'offline',
+            tokensUsed: 0,
+            timestamp: new Date().toISOString(),
+          };
+          stepContext[step] = parsedResult;
+          continue;
+        }
+
+        // Online path: Call LLM with structured output
         const response = await this.callLLMWithRetry(system, user, step);
-        
+
         // Parse and validate response
         const parsedResult = this.parseAndValidateResponse(response.content, step);
-        
+
         // Extract anchors from result
         const anchors = this.extractAnchors(parsedResult);
-        
+
         // Store step result
         stepResults[step] = {
           step,
           result: parsedResult,
           anchors,
           model: this.MODEL,
-          tokensUsed: response.usage?.total_tokens || 0,
+          tokensUsed: (response as any).usage?.total_tokens || 0,
           timestamp: new Date().toISOString(),
         };
-        
+
         // Add this step's result to context for next steps
         stepContext[step] = parsedResult;
-        totalTokens += response.usage?.total_tokens || 0;
+        totalTokens += (response as any).usage?.total_tokens || 0;
         
         console.log(`Completed step ${step}: ${anchors.length} anchors extracted, ${response.usage?.total_tokens} tokens used`);
         

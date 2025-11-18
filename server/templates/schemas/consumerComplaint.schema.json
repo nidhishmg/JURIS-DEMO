@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "petitionerName": { "type": "string", "minLength": 2 },
+    "respondentName": { "type": "string", "minLength": 2 },
+    "facts": { "type": "string", "minLength": 10 },
+    "offence_sections": { "oneOf": [
+      { "type": "array", "items": { "type": "string" } },
+      { "type": "string" }
+    ]}
+  },
+  "required": ["petitionerName", "respondentName", "facts"],
+  "additionalProperties": true
+}

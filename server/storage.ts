@@ -1,310 +1,261 @@
-import {
-  users,
-  organizations,
-  folders,
-  documents,
-  chats,
-  messages,
-  templates,
-  drafts,
-  embeddings,
-  citationVerifications,
-  judgments,
-  analyses,
-  type User,
-  type UpsertUser,
-  type Folder,
-  type InsertFolder,
-  type Document,
-  type InsertDocument,
-  type Chat,
-  type InsertChat,
-  type Message,
-  type InsertMessage,
-  type Template,
-  type Draft,
-  type InsertDraft,
-  type Embedding,
-  type InsertEmbedding,
-  type CitationVerification,
-  type Judgment,
-  type InsertJudgment,
-  type Analysis,
-  type InsertAnalysis,
-} from "@shared/schema";
-import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { randomUUID } from 'crypto';
 
-// Interface for storage operations
-export interface IStorage {
-  // User operations (mandatory for Replit Auth)
-  getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
-  
-  // Folder operations
-  getUserFolders(userId: string): Promise<Folder[]>;
-  createFolder(folder: InsertFolder): Promise<Folder>;
-  getFolder(id: string): Promise<Folder | undefined>;
-  updateFolder(id: string, updates: Partial<InsertFolder>): Promise<Folder>;
-  deleteFolder(id: string): Promise<void>;
-  
-  // Document operations
-  createDocument(document: InsertDocument): Promise<Document>;
-  getDocument(id: string): Promise<Document | undefined>;
-  getFolderDocuments(folderId: string): Promise<Document[]>;
-  deleteDocument(id: string): Promise<void>;
-  
-  // Chat operations
-  createChat(chat: InsertChat): Promise<Chat>;
-  getUserChats(userId: string): Promise<Chat[]>;
-  getChat(id: string): Promise<Chat | undefined>;
-  updateChat(id: string, updates: Partial<InsertChat>): Promise<Chat>;
-  
-  // Message operations
-  createMessage(message: InsertMessage): Promise<Message>;
-  getChatMessages(chatId: string): Promise<Message[]>;
-  
-  // Draft operations
-  createDraft(draft: InsertDraft): Promise<Draft>;
-  getUserDrafts(userId: string): Promise<Draft[]>;
-  getDraft(id: string): Promise<Draft | undefined>;
-  updateDraft(id: string, updates: Partial<InsertDraft>): Promise<Draft>;
-  
-  // Embedding operations
-  createEmbedding(embedding: InsertEmbedding): Promise<Embedding>;
-  getDocumentEmbeddings(documentId: string): Promise<Embedding[]>;
-  
-  // Judgment operations
-  createJudgment(judgment: InsertJudgment): Promise<Judgment>;
-  getJudgment(id: string): Promise<Judgment | undefined>;
-  getUserJudgments(userId: string): Promise<Judgment[]>;
-  updateJudgment(id: string, updates: Partial<InsertJudgment>): Promise<Judgment>;
-  
-  // Analysis operations
-  createAnalysis(analysis: InsertAnalysis): Promise<Analysis>;
-  getAnalysis(id: string): Promise<Analysis | undefined>;
-  getJudgmentAnalysis(judgmentId: string): Promise<Analysis | undefined>;
-  updateAnalysis(id: string, updates: Partial<InsertAnalysis>): Promise<Analysis>;
-}
+// In-memory storage implementation to remove DB dependency for local development
+type AnyRecord = Record<string, any>;
 
-export class DatabaseStorage implements IStorage {
-  // User operations (mandatory for Replit Auth)
-  async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+  class InMemoryStorage {
+    users = new Map<string, AnyRecord>();
+    organizations = new Map<string, AnyRecord>();
+    folders = new Map<string, AnyRecord>();
+    documents = new Map<string, AnyRecord>();
+    chats = new Map<string, AnyRecord>();
+    messages = new Map<string, AnyRecord>();
+    templates = new Map<string, AnyRecord>();
+    drafts = new Map<string, AnyRecord>();
+    embeddings = new Map<string, AnyRecord>();
+    citationVerifications = new Map<string, AnyRecord>();
+    judgments = new Map<string, AnyRecord>();
+    analyses = new Map<string, AnyRecord>();
+  // Draft generator specific
+  incomingRequests = new Map<string, AnyRecord>();
+  normalizedRequests = new Map<string, AnyRecord>();
+  promptHistory = new Map<string, AnyRecord>();
+  llmOutputs = new Map<string, AnyRecord>();
+  auditLogs = new Map<string, AnyRecord>();
+
+    // Utilities
+  now() { return new Date().toISOString(); }
+  ts(v?: string) { return v ? new Date(v).getTime() : 0; }
+
+    async getUser(id: string) {
+      return this.users.get(id);
+    }
+
+    async upsertUser(userData: AnyRecord) {
+      const id = userData.id || randomUUID();
+      const existing = this.users.get(id) || {};
+      const merged = { ...existing, ...userData, id, updatedAt: this.now(), createdAt: existing.createdAt || this.now() };
+      this.users.set(id, merged);
+      return merged;
+    }
+
+    async getUserFolders(userId: string) {
+      return Array.from(this.folders.values())
+        .filter(f => f.userId === userId)
+        .sort((a,b) => this.ts(b.updatedAt) - this.ts(a.updatedAt));
+    }
+
+    async createFolder(folder: AnyRecord) {
+      const id = folder.id || randomUUID();
+      const obj = { id, ...folder, createdAt: this.now(), updatedAt: this.now() };
+      this.folders.set(id, obj);
+      return obj;
+    }
+
+    async getFolder(id: string) { return this.folders.get(id); }
+
+    async updateFolder(id: string, updates: AnyRecord) {
+      const existing = this.folders.get(id);
+      if (!existing) throw new Error('Folder not found');
+      const updated = { ...existing, ...updates, updatedAt: this.now() };
+      this.folders.set(id, updated);
+      return updated;
+    }
+
+    async deleteFolder(id: string) { this.folders.delete(id); }
+
+    // Documents
+    async createDocument(document: AnyRecord) {
+      const id = document.id || randomUUID();
+      const obj = { id, ...document, createdAt: this.now(), updatedAt: this.now() };
+      this.documents.set(id, obj);
+      return obj;
+    }
+
+    async getDocument(id: string) { return this.documents.get(id); }
+
+    async updateDocument(id: string, updates: AnyRecord) {
+      const existing = this.documents.get(id);
+      if (!existing) throw new Error('Document not found');
+      const updated = { ...existing, ...updates, updatedAt: this.now() };
+      this.documents.set(id, updated);
+      return updated;
+    }
+
+    async getFolderDocuments(folderId: string) {
+      return Array.from(this.documents.values())
+        .filter(d => d.folderId === folderId)
+        .sort((a,b) => this.ts(b.createdAt) - this.ts(a.createdAt));
+    }
+
+    async deleteDocument(id: string) { this.documents.delete(id); }
+
+    // Chat & messages
+    async createChat(chat: AnyRecord) {
+      const id = chat.id || randomUUID();
+      const obj = { id, ...chat, createdAt: this.now(), updatedAt: this.now() };
+      this.chats.set(id, obj);
+      return obj;
+    }
+
+    async getUserChats(userId: string) {
+      return Array.from(this.chats.values())
+        .filter(c => c.userId === userId)
+        .sort((a,b) => this.ts(b.updatedAt) - this.ts(a.updatedAt));
+    }
+
+    async getChat(id: string) { return this.chats.get(id); }
+
+    async updateChat(id: string, updates: AnyRecord) {
+      const existing = this.chats.get(id);
+      if (!existing) throw new Error('Chat not found');
+      const updated = { ...existing, ...updates, updatedAt: this.now() };
+      this.chats.set(id, updated);
+      return updated;
+    }
+
+    async createMessage(message: AnyRecord) {
+      const id = message.id || randomUUID();
+      const obj = { id, ...message, createdAt: this.now() };
+      this.messages.set(id, obj);
+      return obj;
+    }
+
+    async getChatMessages(chatId: string) {
+      return Array.from(this.messages.values()).filter(m => m.chatId === chatId).sort((a,b) => (new Date(a.createdAt)).getTime() - (new Date(b.createdAt)).getTime());
+    }
+
+    // Drafts/templates
+    async createDraft(draft: AnyRecord) {
+      const id = draft.id || randomUUID();
+      const obj = { id, ...draft, createdAt: this.now(), updatedAt: this.now() };
+      this.drafts.set(id, obj);
+      return obj;
+    }
+
+    // Incoming requests
+    async createIncomingRequest(data: AnyRecord) {
+      const id = data.request_id || randomUUID();
+      const obj = { request_id: id, ...data, received_at: this.now(), status: data.status || 'received' };
+      this.incomingRequests.set(id, obj);
+      return obj;
+    }
+
+    async updateIncomingRequest(requestId: string, updates: AnyRecord) {
+      const existing = this.incomingRequests.get(requestId);
+      if (!existing) throw new Error('Incoming request not found');
+      const updated = { ...existing, ...updates, updated_at: this.now() };
+      this.incomingRequests.set(requestId, updated);
+      return updated;
+    }
+
+    // Normalized requests
+    async createNormalizedRequest(data: AnyRecord) {
+      const id = data.request_id || randomUUID();
+      const obj = { request_id: id, ...data, normalized_at: this.now() };
+      this.normalizedRequests.set(id, obj);
+      return obj;
+    }
+
+    // Prompt history
+    async createPromptHistory(data: AnyRecord) {
+      const id = data.id || randomUUID();
+      const obj = { id, ...data, created_at: this.now() };
+      this.promptHistory.set(id, obj);
+      return obj;
+    }
+
+    // LLM outputs
+    async createLlmOutput(data: AnyRecord) {
+      const id = data.id || randomUUID();
+      const obj = { id, ...data, created_at: this.now() };
+      this.llmOutputs.set(id, obj);
+      return obj;
+    }
+
+    // Audit logs
+    async createAuditLog(data: AnyRecord) {
+      const id = data.id || randomUUID();
+      const obj = { id, ...data, ts: this.now() };
+      this.auditLogs.set(id, obj);
+      return obj;
+    }
+
+    async getUserDrafts(userId: string) {
+      return Array.from(this.drafts.values())
+        .filter(d => d.userId === userId)
+        .sort((a,b) => this.ts(b.updatedAt) - this.ts(a.updatedAt));
+    }
+
+    async getDraft(id: string) { return this.drafts.get(id); }
+
+    async updateDraft(id: string, updates: AnyRecord) {
+      const existing = this.drafts.get(id);
+      if (!existing) throw new Error('Draft not found');
+      const updated = { ...existing, ...updates, updatedAt: this.now() };
+      this.drafts.set(id, updated);
+      return updated;
+    }
+
+    // Templates
+    async getTemplates() {
+      return Array.from(this.templates.values()).filter(t => t.isActive !== false);
+    }
+
+    async getTemplate(id: string) { return this.templates.get(id); }
+
+    async upsertTemplate(template: AnyRecord) {
+      const id = template.id || randomUUID();
+      const existing = this.templates.get(id) || {};
+      const merged = { ...existing, ...template, id, updatedAt: this.now(), createdAt: existing.createdAt || this.now() };
+      this.templates.set(id, merged);
+      return merged;
+    }
+
+    // Embeddings
+    async createEmbedding(embedding: AnyRecord) {
+      const id = embedding.id || randomUUID();
+      const obj = { id, ...embedding, createdAt: this.now() };
+      this.embeddings.set(id, obj);
+      return obj;
+    }
+
+    async getDocumentEmbeddings(documentId: string) {
+      return Array.from(this.embeddings.values()).filter(e => e.documentId === documentId).sort((a,b) => a.chunkIndex - b.chunkIndex);
+    }
+
+    // Citation verifications
+    async getCitationVerification(citation: string) {
+      return Array.from(this.citationVerifications.values()).find(v => v.citation === citation);
+    }
+
+    async createCitationVerification(data: AnyRecord) {
+      const id = data.id || randomUUID();
+      const obj = { id, ...data, createdAt: this.now() };
+      this.citationVerifications.set(id, obj);
+      return obj;
+    }
+
+    async getCitationStats() {
+      const stats = Array.from(this.citationVerifications.values());
+      const uniqueSources = new Set(stats.map(v => v.source).filter(Boolean));
+      return {
+        totalVerified: stats.length,
+        averageConfidence: stats.length ? stats.reduce((s,v) => s + (v.confidence||0), 0) / stats.length : 0,
+        sources: Array.from(uniqueSources),
+      };
+    }
+
+    // Judgments & analyses
+    async createJudgment(j: AnyRecord) { const id = j.id || randomUUID(); const obj = { id, ...j, createdAt: this.now() }; this.judgments.set(id, obj); return obj; }
+    async getJudgment(id: string) { return this.judgments.get(id); }
+    async getUserJudgments(userId: string) { return Array.from(this.judgments.values()).filter(j => j.uploadedBy === userId); }
+    async updateJudgment(id: string, updates: AnyRecord) { const ex = this.judgments.get(id); if (!ex) throw new Error('Judgment not found'); const upd = { ...ex, ...updates, updatedAt: this.now() }; this.judgments.set(id, upd); return upd; }
+
+    async createAnalysis(a: AnyRecord) { const id = a.id || randomUUID(); const obj = { id, ...a, createdAt: this.now(), updatedAt: this.now() }; this.analyses.set(id, obj); return obj; }
+    async getAnalysis(id: string) { return this.analyses.get(id); }
+    async getJudgmentAnalysis(judgmentId: string) { return Array.from(this.analyses.values()).find(a => a.judgmentId === judgmentId); }
+    async updateAnalysis(id: string, updates: AnyRecord) { const ex = this.analyses.get(id); if (!ex) throw new Error('Analysis not found'); const upd = { ...ex, ...updates, updatedAt: this.now() }; this.analyses.set(id, upd); return upd; }
   }
 
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return user;
-  }
-
-  // Folder operations
-  async getUserFolders(userId: string): Promise<Folder[]> {
-    return await db
-      .select()
-      .from(folders)
-      .where(eq(folders.userId, userId))
-      .orderBy(desc(folders.updatedAt));
-  }
-
-  async createFolder(folder: InsertFolder): Promise<Folder> {
-    const [created] = await db.insert(folders).values(folder).returning();
-    return created;
-  }
-
-  async getFolder(id: string): Promise<Folder | undefined> {
-    const [folder] = await db.select().from(folders).where(eq(folders.id, id));
-    return folder;
-  }
-
-  async updateFolder(id: string, updates: Partial<InsertFolder>): Promise<Folder> {
-    const [updated] = await db
-      .update(folders)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(folders.id, id))
-      .returning();
-    return updated;
-  }
-
-  async deleteFolder(id: string): Promise<void> {
-    await db.delete(folders).where(eq(folders.id, id));
-  }
-
-  // Document operations
-  async createDocument(document: InsertDocument): Promise<Document> {
-    const [created] = await db.insert(documents).values(document).returning();
-    return created;
-  }
-
-  async getDocument(id: string): Promise<Document | undefined> {
-    const [document] = await db.select().from(documents).where(eq(documents.id, id));
-    return document;
-  }
-
-  async getFolderDocuments(folderId: string): Promise<Document[]> {
-    return await db
-      .select()
-      .from(documents)
-      .where(eq(documents.folderId, folderId))
-      .orderBy(desc(documents.createdAt));
-  }
-
-  async deleteDocument(id: string): Promise<void> {
-    await db.delete(documents).where(eq(documents.id, id));
-  }
-
-  // Chat operations
-  async createChat(chat: InsertChat): Promise<Chat> {
-    const [created] = await db.insert(chats).values(chat).returning();
-    return created;
-  }
-
-  async getUserChats(userId: string): Promise<Chat[]> {
-    return await db
-      .select()
-      .from(chats)
-      .where(eq(chats.userId, userId))
-      .orderBy(desc(chats.updatedAt));
-  }
-
-  async getChat(id: string): Promise<Chat | undefined> {
-    const [chat] = await db.select().from(chats).where(eq(chats.id, id));
-    return chat;
-  }
-
-  async updateChat(id: string, updates: Partial<InsertChat>): Promise<Chat> {
-    const [updated] = await db
-      .update(chats)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(chats.id, id))
-      .returning();
-    return updated;
-  }
-
-  // Message operations
-  async createMessage(message: InsertMessage): Promise<Message> {
-    const [created] = await db.insert(messages).values(message).returning();
-    return created;
-  }
-
-  async getChatMessages(chatId: string): Promise<Message[]> {
-    return await db
-      .select()
-      .from(messages)
-      .where(eq(messages.chatId, chatId))
-      .orderBy(messages.createdAt);
-  }
-
-  // Draft operations
-  async createDraft(draft: InsertDraft): Promise<Draft> {
-    const [created] = await db.insert(drafts).values(draft).returning();
-    return created;
-  }
-
-  async getUserDrafts(userId: string): Promise<Draft[]> {
-    return await db
-      .select()
-      .from(drafts)
-      .where(eq(drafts.userId, userId))
-      .orderBy(desc(drafts.updatedAt));
-  }
-
-  async getDraft(id: string): Promise<Draft | undefined> {
-    const [draft] = await db.select().from(drafts).where(eq(drafts.id, id));
-    return draft;
-  }
-
-  async updateDraft(id: string, updates: Partial<InsertDraft>): Promise<Draft> {
-    const [updated] = await db
-      .update(drafts)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(drafts.id, id))
-      .returning();
-    return updated;
-  }
-
-  // Embedding operations
-  async createEmbedding(embedding: InsertEmbedding): Promise<Embedding> {
-    const [created] = await db.insert(embeddings).values(embedding).returning();
-    return created;
-  }
-
-  async getDocumentEmbeddings(documentId: string): Promise<Embedding[]> {
-    return await db
-      .select()
-      .from(embeddings)
-      .where(eq(embeddings.documentId, documentId))
-      .orderBy(embeddings.chunkIndex);
-  }
-
-  // Judgment operations
-  async createJudgment(judgment: InsertJudgment): Promise<Judgment> {
-    const [created] = await db.insert(judgments).values(judgment).returning();
-    return created;
-  }
-
-  async getJudgment(id: string): Promise<Judgment | undefined> {
-    const [judgment] = await db.select().from(judgments).where(eq(judgments.id, id));
-    return judgment;
-  }
-
-  async getUserJudgments(userId: string): Promise<Judgment[]> {
-    return await db
-      .select()
-      .from(judgments)
-      .where(eq(judgments.uploadedBy, userId))
-      .orderBy(desc(judgments.createdAt));
-  }
-
-  async updateJudgment(id: string, updates: Partial<InsertJudgment>): Promise<Judgment> {
-    const [updated] = await db
-      .update(judgments)
-      .set(updates)
-      .where(eq(judgments.id, id))
-      .returning();
-    return updated;
-  }
-
-  // Analysis operations
-  async createAnalysis(analysis: InsertAnalysis): Promise<Analysis> {
-    const [created] = await db.insert(analyses).values(analysis).returning();
-    return created;
-  }
-
-  async getAnalysis(id: string): Promise<Analysis | undefined> {
-    const [analysis] = await db.select().from(analyses).where(eq(analyses.id, id));
-    return analysis;
-  }
-
-  async getJudgmentAnalysis(judgmentId: string): Promise<Analysis | undefined> {
-    const [analysis] = await db
-      .select()
-      .from(analyses)
-      .where(eq(analyses.judgmentId, judgmentId))
-      .orderBy(desc(analyses.createdAt))
-      .limit(1);
-    return analysis;
-  }
-
-  async updateAnalysis(id: string, updates: Partial<InsertAnalysis>): Promise<Analysis> {
-    const [updated] = await db
-      .update(analyses)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(analyses.id, id))
-      .returning();
-    return updated;
-  }
-}
-
-export const storage = new DatabaseStorage();
+  export const storage = new InMemoryStorage();

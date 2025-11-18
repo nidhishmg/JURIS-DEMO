@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: juris-postgres
+    environment:
+      POSTGRES_DB: juris_db
+      POSTGRES_USER: juris_user
+      POSTGRES_PASSWORD: juris_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - juris_postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+volumes:
+  juris_postgres_data:

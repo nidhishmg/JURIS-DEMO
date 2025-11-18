@@ -112,6 +112,27 @@ export default function ChatArea({
     if (!activeChat || !user) return;
 
     try {
+      // If there are attachments, upload them to the active folder (for RAG)
+      if (attachments && attachments.length > 0) {
+        if (!activeFolder) {
+          toast({
+            title: "Folder required",
+            description: "Select or create a folder to upload documents for context.",
+            variant: "destructive",
+          });
+        } else {
+          for (const att of attachments) {
+            const file: File | undefined = att.file;
+            if (!file) continue;
+            try {
+              await api.uploadDocument(activeFolder.id, file);
+            } catch (e) {
+              console.warn("Failed to upload attachment", file?.name, e);
+            }
+          }
+        }
+      }
+
       // Add user message to local state immediately
       const userMessage: Message = {
         id: `temp-${Date.now()}`,
@@ -238,12 +259,12 @@ export default function ChatArea({
           <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted rounded-lg cursor-pointer transition-colors">
             <Avatar className="w-8 h-8">
               <AvatarFallback className="bg-primary text-primary-foreground text-sm font-medium">
-                {user?.firstName?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
+                {(user as any)?.name?.[0]?.toUpperCase?.() || (user as any)?.email?.[0]?.toUpperCase?.() || 'U'}
               </AvatarFallback>
             </Avatar>
             <div className="hidden md:block">
               <p className="text-sm font-medium" data-testid="user-name">
-                {user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user?.email}
+                {(user as any)?.name || (user as any)?.email}
               </p>
               <p className="text-xs text-muted-foreground">Premium</p>
             </div>

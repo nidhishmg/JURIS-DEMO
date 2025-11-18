@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "applicantName": { "type": "string", "minLength": 2 },
+    "caseNumber": { "type": "string" },
+    "courtName": { "type": "string" },
+    "facts": { "type": "string", "minLength": 10 }
+  },
+  "required": ["applicantName", "facts"],
+  "additionalProperties": true
+}

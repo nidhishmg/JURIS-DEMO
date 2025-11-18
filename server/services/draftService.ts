@@ -1,7 +1,6 @@
-import { db } from "../db";
-import { templates, drafts, folders } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { storage } from "../storage";
 import { chatService } from "./chatService";
+import { localLlmService } from "./localLlmService";
 import fs from "fs/promises";
 import path from "path";
 
@@ -23,16 +22,11 @@ interface GenerateDraftRequest {
 
 export class DraftService {
   async getTemplates() {
-    return await db.select().from(templates).where(eq(templates.isActive, true));
+    return storage.getTemplates();
   }
 
   async getTemplate(templateId: string) {
-    const [template] = await db.select()
-      .from(templates)
-      .where(eq(templates.id, templateId))
-      .limit(1);
-    
-    return template;
+    return storage.getTemplate(templateId);
   }
 
   async generateDraft(request: GenerateDraftRequest) {
@@ -44,44 +38,72 @@ export class DraftService {
     // Build context from folder if provided
     let folderContext = {};
     if (request.folderId) {
-      const [folder] = await db.select()
-        .from(folders)
-        .where(eq(folders.id, request.folderId))
-        .limit(1);
-      
-      if (folder?.metadata) {
-        folderContext = folder.metadata as any;
-      }
+      const folder = await storage.getFolder(request.folderId);
+      if (folder?.metadata) folderContext = folder.metadata as any;
     }
 
     // Merge folder context with user inputs
     const allInputs = { ...folderContext, ...request.inputs };
 
-    // Generate draft content using template
+    // Generate initial draft content using template
     const { contentHtml, contentText, missingFields } = this.processTemplate(
       template.template as any,
       allInputs
     );
 
+    // Check if local LLM is available and enhance the draft
+    let enhancedContentHtml = contentHtml;
+    let enhancedContentText = contentText;
+    let llmEnhanced = false;
+
+    try {
+      const isLocalLlmAvailable = await localLlmService.isAvailable();
+      
+      if (isLocalLlmAvailable && contentText.trim()) {
+        console.log('Enhancing draft with local LLM...');
+        
+        const enhancedContent = await localLlmService.enhanceDraft(
+          contentText,
+          allInputs,
+          template.title
+        );
+
+        if (enhancedContent && enhancedContent.trim()) {
+          // Convert enhanced content to HTML
+          enhancedContentHtml = this.convertTextToHtml(enhancedContent);
+          enhancedContentText = enhancedContent;
+          llmEnhanced = true;
+          console.log('Draft successfully enhanced with local LLM');
+        }
+      } else if (!isLocalLlmAvailable) {
+        console.log('Local LLM not available, using template-only generation');
+      }
+    } catch (error) {
+      console.error('Error enhancing draft with local LLM:', error);
+      // Continue with original template-based content
+    }
+
     // Extract citations from content
-    const citations = this.extractCitations(contentHtml);
+    const citations = this.extractCitations(enhancedContentHtml);
 
     // Save draft to database
-    const [draft] = await db.insert(drafts).values({
+    const draft = await storage.createDraft({
       templateId: request.templateId,
       folderId: request.folderId,
       userId: request.userId,
       title: request.title,
-      contentHtml,
-      contentText,
+      contentHtml: enhancedContentHtml,
+      contentText: enhancedContentText,
       inputs: allInputs,
       citations,
-    }).returning();
+      status: 'draft',
+    });
 
     return {
       ...draft,
       missingFields,
       citations,
+      llmEnhanced,
     };
   }
 
@@ -123,6 +145,33 @@ export class DraftService {
     });
   }
 
+  private convertTextToHtml(text: string): string {
+    // Convert plain text to HTML with basic formatting
+    return text
+      .split('\n\n')
+      .map(paragraph => {
+        if (paragraph.trim()) {
+          // Check if it looks like a heading (all caps, short, etc.)
+          if (paragraph.length < 100 && paragraph === paragraph.toUpperCase() && paragraph.trim().endsWith(':')) {
+            return `<h3>${paragraph.trim()}</h3>`;
+          }
+          // Check if it starts with a number (like 1., 2., etc.)
+          if (/^\d+\./.test(paragraph.trim())) {
+            return `<ol><li>${paragraph.replace(/^\d+\.\s*/, '').trim()}</li></ol>`;
+          }
+          // Check if it starts with a bullet point
+          if (/^[-•*]/.test(paragraph.trim())) {
+            return `<ul><li>${paragraph.replace(/^[-•*]\s*/, '').trim()}</li></ul>`;
+          }
+          // Regular paragraph
+          return `<p>${paragraph.trim()}</p>`;
+        }
+        return '';
+      })
+      .filter(Boolean)
+      .join('\n');
+  }
+
   private extractCitations(html: string): any[] {
     const citations: any[] = [];
     
@@ -157,35 +206,99 @@ export class DraftService {
   }
 
   async getUserDrafts(userId: string) {
-    return await db.select({
-      id: drafts.id,
-      title: drafts.title,
-      status: drafts.status,
-      templateId: drafts.templateId,
-      folderId: drafts.folderId,
-      createdAt: drafts.createdAt,
-      updatedAt: drafts.updatedAt,
-    })
-      .from(drafts)
-      .where(eq(drafts.userId, userId));
+    return storage.getUserDrafts(userId);
   }
 
   async getDraft(draftId: string) {
-    const [draft] = await db.select()
-      .from(drafts)
-      .where(eq(drafts.id, draftId))
-      .limit(1);
-    
-    return draft;
+    return storage.getDraft(draftId);
   }
 
-  async updateDraft(draftId: string, updates: Partial<typeof drafts.$inferInsert>) {
-    const [updatedDraft] = await db.update(drafts)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(drafts.id, draftId))
-      .returning();
-    
-    return updatedDraft;
+  async updateDraft(draftId: string, updates: Partial<any>) {
+    return storage.updateDraft(draftId, updates as any);
+  }
+
+  async enhanceDraftWithLLM(draftId: string, userId: string) {
+    const draft = await storage.getDraft(draftId);
+    if (!draft || draft.userId !== userId) {
+      throw new Error("Draft not found or access denied");
+    }
+
+    try {
+      const isLocalLlmAvailable = await localLlmService.isAvailable();
+      
+      if (!isLocalLlmAvailable) {
+        throw new Error("Local LLM is not available");
+      }
+
+      const template = await this.getTemplate(draft.templateId);
+      if (!template) {
+        throw new Error("Template not found");
+      }
+
+      console.log('Enhancing existing draft with local LLM...');
+      
+      const enhancedContent = await localLlmService.enhanceDraft(
+        draft.contentText,
+        draft.inputs,
+        template.title
+      );
+
+      if (enhancedContent && enhancedContent.trim()) {
+        const enhancedContentHtml = this.convertTextToHtml(enhancedContent);
+        const citations = this.extractCitations(enhancedContentHtml);
+
+        const updatedDraft = await storage.updateDraft(draftId, {
+          contentHtml: enhancedContentHtml,
+          contentText: enhancedContent,
+          citations,
+          updatedAt: new Date(),
+        });
+
+        console.log('Draft successfully enhanced with local LLM');
+        return {
+          ...updatedDraft,
+          llmEnhanced: true,
+        };
+      } else {
+        throw new Error("Failed to generate enhanced content");
+      }
+    } catch (error) {
+      console.error('Error enhancing draft with local LLM:', error);
+      throw error;
+    }
+  }
+
+  async validateDraftWithLLM(draftId: string, userId: string) {
+    const draft = await storage.getDraft(draftId);
+    if (!draft || draft.userId !== userId) {
+      throw new Error("Draft not found or access denied");
+    }
+
+    try {
+      const isLocalLlmAvailable = await localLlmService.isAvailable();
+      
+      if (!isLocalLlmAvailable) {
+        throw new Error("Local LLM is not available");
+      }
+
+      const template = await this.getTemplate(draft.templateId);
+      if (!template) {
+        throw new Error("Template not found");
+      }
+
+      console.log('Validating draft with local LLM...');
+      
+      const validation = await localLlmService.validateDraft(
+        draft.contentText,
+        template.title
+      );
+
+      console.log('Draft validation completed');
+      return validation;
+    } catch (error) {
+      console.error('Error validating draft with local LLM:', error);
+      throw error;
+    }
   }
 
   async loadTemplatesFromFiles() {
@@ -200,16 +313,8 @@ export class DraftService {
         const fileContent = await fs.readFile(filePath, 'utf-8');
         const templateData = JSON.parse(fileContent);
 
-        // Upsert template (insert or update if exists)
-        await db.insert(templates)
-          .values(templateData)
-          .onConflictDoUpdate({
-            target: templates.id,
-            set: {
-              ...templateData,
-              updatedAt: new Date(),
-            }
-          });
+        // Upsert template into in-memory storage
+        await storage.upsertTemplate(templateData);
       }
 
       console.log(`Loaded ${jsonFiles.length} templates from files`);

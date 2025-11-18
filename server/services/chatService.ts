@@ -1,8 +1,7 @@
 import { openai } from "../openai";
-import { db } from "../db";
-import { messages, chats, folders, documents } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { storage } from "../storage";
 import { ragService } from "./ragService";
+import { isOffline, offlineChatCompose } from "./offline";
 
 interface ChatContext {
   userId: string;
@@ -20,47 +19,20 @@ interface StreamResponse {
 
 export class ChatService {
   async createChat(userId: string, title?: string, folderId?: string, mode = "general") {
-    const [chat] = await db.insert(chats).values({
-      userId,
-      title,
-      folderId,
-      mode,
-    }).returning();
-    
+    const chat = await storage.createChat({ userId, title, folderId, mode });
     return chat;
   }
 
   async getChatHistory(chatId: string) {
-    return await db.select()
-      .from(messages)
-      .where(eq(messages.chatId, chatId))
-      .orderBy(messages.createdAt);
+    return await storage.getChatMessages(chatId);
   }
 
   async getUserChats(userId: string) {
-    return await db.select({
-      id: chats.id,
-      title: chats.title,
-      folderId: chats.folderId,
-      mode: chats.mode,
-      createdAt: chats.createdAt,
-      updatedAt: chats.updatedAt,
-    })
-      .from(chats)
-      .where(eq(chats.userId, userId))
-      .orderBy(desc(chats.updatedAt));
+    return await storage.getUserChats(userId);
   }
 
   async addMessage(chatId: string, role: string, content: string, sources?: any[], metadata?: any) {
-    const [message] = await db.insert(messages).values({
-      chatId,
-      role,
-      content,
-      sources,
-      metadata,
-    }).returning();
-    
-    return message;
+    return await storage.createMessage({ chatId, role, content, sources, metadata });
   }
 
   async *streamChatResponse(context: ChatContext, userMessage: string) {
@@ -87,6 +59,45 @@ export class ChatService {
     ];
 
     try {
+      // Offline path: compose local response and simulate streaming
+      if (isOffline()) {
+        const offlineText = offlineChatCompose(userMessage, context.mode, retrievedContext);
+        const responseId = `offline-${Date.now()}`;
+        let fullContent = "";
+        const chunkSize = 60;
+        for (let i = 0; i < offlineText.length; i += chunkSize) {
+          const piece = offlineText.slice(i, i + chunkSize);
+          fullContent += piece;
+          yield {
+            id: responseId,
+            content: piece,
+            sources: retrievedContext.sources,
+            metadata: retrievedContext.metadata,
+            isComplete: false,
+          } as StreamResponse;
+        }
+        const assistantMessage = await this.addMessage(
+          context.chatId,
+          "assistant",
+          fullContent,
+          retrievedContext.sources,
+          retrievedContext.metadata
+        );
+        if (history.length <= 1) {
+          const title = this.generateChatTitle(userMessage);
+          await storage.updateChat(context.chatId, { title, updatedAt: new Date() } as any);
+        }
+        yield {
+          id: assistantMessage.id,
+          content: "",
+          sources: retrievedContext.sources,
+          metadata: retrievedContext.metadata,
+          isComplete: true,
+        } as StreamResponse;
+        return;
+      }
+
+      // Online path: call OpenAI via OpenRouter
       const stream = await openai.chat.completions.create({
         model: "openai/gpt-4o",
         messages: conversationMessages as any,
@@ -101,8 +112,8 @@ export class ChatService {
         const content = chunk.choices[0]?.delta?.content || "";
         fullContent += content;
         
-        if (!responseId && chunk.id) {
-          responseId = chunk.id;
+        if (!responseId && (chunk as any).id) {
+          responseId = (chunk as any).id as string;
         }
 
         yield {
@@ -126,9 +137,7 @@ export class ChatService {
       // Update chat title if this is the first exchange
       if (history.length <= 1) {
         const title = this.generateChatTitle(userMessage);
-        await db.update(chats)
-          .set({ title, updatedAt: new Date() })
-          .where(eq(chats.id, context.chatId));
+        await storage.updateChat(context.chatId, { title, updatedAt: new Date() } as any);
       }
 
       yield {

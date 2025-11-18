@@ -99,6 +99,19 @@ export default function DraftGenerator({ folderId, onClose, onDraftGenerated }: 
       setGeneratedDraft(draft);
       setStep('editor');
       onDraftGenerated(draft);
+      
+      if (draft.llmEnhanced) {
+        const confidence = draft.confidence ? Math.round(draft.confidence * 100) : 0;
+        toast({
+          title: "Draft Generated & Enhanced",
+          description: `Your draft has been created using local AI (${confidence}% confidence)`,
+        });
+      } else {
+        toast({
+          title: "Draft Generated",
+          description: "Your draft has been created using the template",
+        });
+      }
     } catch (error: any) {
       if (isUnauthorizedError(error)) {
         toast({
